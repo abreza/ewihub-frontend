@@ -1,0 +1,358 @@
+// src/components/organisms/BodyDiagram.tsx
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { Box, Typography, alpha } from "@mui/material";
+
+interface BodyDiagramProps {
+  data: Record<string, number>;
+  resultLabel: string;
+  variant?: "compact" | "full";
+}
+
+type BodyPartDef = {
+  key: string[];
+  label: string;
+  d: string;
+  labelPos: { x: number; y: number };
+};
+
+// High-tech, dark-mode optimized base colors for 4 levels of discomfort
+const BASE_COLORS = [
+  { fill: "#065f46", light: "#10b981", border: "#34d399", glow: "rgba(16,185,129,0.4)", text: "#a7f3d0" }, // Low
+  { fill: "#854d0e", light: "#eab308", border: "#fde047", glow: "rgba(234,179,8,0.4)", text: "#fef08a" }, // Mild
+  { fill: "#9a3412", light: "#f97316", border: "#fdba74", glow: "rgba(249,115,22,0.4)", text: "#ffedd5" }, // High
+  { fill: "#7f1d1d", light: "#ef4444", border: "#fca5a5", glow: "rgba(239,68,68,0.5)", text: "#fee2e2" }, // Severe
+];
+
+const ZERO_BUCKET = {
+  min: 0, max: 0, fill: "#0f172a", light: "#1e293b", border: "#334155", glow: "transparent", text: "#475569", label: "0"
+};
+
+const BODY_PARTS: BodyPartDef[] = [
+  { key: ["head"], label: "Head", d: "M454.56.24c21.43,1.05,39.32,9,51.86,27.3,2.82,4.1,3.88,8.78,4.19,13.61.45,7.1,1.11,14.18,1.76,21.26S517.21,74.7,521.12,80c7.49,10.11,6.35,20.89,2.69,31.7-3.37,10-10.91,17.31-17.37,25.29-1.25,1.55-2.36,1.16-3.75-.05-11.61-10.09-25.48-14-40.52-15.75-15.57-1.75-30.31.64-44.78,6.11a46,46,0,0,0-14.2,9c-.88.78-1.8,2.59-3.13.7-5.92-8.34-14.58-14.77-18-24.82-4-11.78-4.83-23.5,3.69-33.91a42.49,42.49,0,0,0,9.66-27.67c-.15-24.78,13.31-38.48,35.16-46C438.28,1.89,446-.83,454.56.24Z", labelPos: { x: 452.9, y: 69.0 } },
+  { key: ["neck"], label: "Neck", d: "M455.22,252.34c-29.83.65-56.5-3.66-82.06-14.07-4.31-1.75-8.41-4-12.58-6.05-1.05-.52-2.36-1.2-2.28-2.42.08-1.4,1.7-1.27,2.73-1.72,17.22-7.34,31.19-18.29,39.11-35.76,5.42-12,6.7-24.53,4.86-37.48-.21-1.47.16-3.16-.44-4.43-3.55-7.59,1.16-11.3,6.61-14.84,9.83-6.4,20.66-9.14,32.28-10.47,14.26-1.63,27.69.65,41,5.32,4.92,1.72,9.1,4.78,13.36,7.67,2.46,1.66,3,4,2.94,6.93-.52,15.7.8,31.2,6.36,46,6.46,17.25,17.61,29.9,35.74,35.52,1.46.46,3.95.23,4.15,2.15.18,1.77-2.07,2.34-3.48,3.17-20.13,11.85-42.23,17-65.19,19.58C469.8,252.46,461.36,251.88,455.22,252.34Z", labelPos: { x: 452.7, y: 188.5 } },
+  { key: ["leftShoulder"], label: "L Shoulder", d: "M262.69,305.13c-.26-9.78,3.51-17.23,9.68-24.16,20.71-23.26,46.7-38,75.63-48.32,3.36-1.2,6-1.16,9.24.82,22.18,13.63,46.92,19.7,72.25,23.9,1.47.24,2.9.73,4.38.91,8.8,1,8.67.93,4.77,9.17a176.56,176.56,0,0,1-35.22,50.39c-20.07,19.89-43.22,35.13-70.5,43.58-6.18,1.91-12.22,4.26-17.42,8.35-3.8,3-7.65,2.93-12,.59-11.36-6.09-19.68-15.29-26.48-25.82a94.66,94.66,0,0,1-13.7-32.93A55,55,0,0,1,262.69,305.13Z", labelPos: { x: 351.9, y: 302.0 } },
+  { key: ["rightShoulder"], label: "R Shoulder", d: "M646.7,302.61c-.76,17-7.6,31.75-17.3,45.27a73.65,73.65,0,0,1-21.08,20.23c-4.44,2.72-9.12,4.31-13.77.61-7.49-6-16.62-8.25-25.33-11.26-19.28-6.67-36-17.41-51.48-30.42-21.15-17.74-36.82-39.45-48.38-64.33-2-4.29-1.6-4.74,3.19-5.41,28.38-4,56-10.52,80.9-25.55A7,7,0,0,1,560,231c29.8,10.26,56.62,25.25,77.81,49.11C643.42,286.42,647.72,293.46,646.7,302.61Z", labelPos: { x: 557.5, y: 300.7 } },
+  { key: ["upperBack"], label: "Upper Back", d: "M460.18,478.35c-38.22.16-73.08-3.4-107.31-12.09-7.86-2-15.54-4.72-23.31-7.11-2.68-.83-4-2.39-3.94-5.46.14-15-.8-29.92-1.25-44.87-.33-11.13-.35-22.26-.75-33.39-.12-3.5.9-5.13,4.4-6.46,24.84-9.49,47.57-22.49,67.75-40.07,22.11-19.28,38.35-42.57,49.89-69.33,1-2.33,2.17-3.37,4.76-3.28,14.79.51,10.91-2.48,17.15,10.57a196.69,196.69,0,0,0,33.28,49.34c22.34,24.12,49.43,40.34,80.54,50.2,2.5.79,3.46,2.15,3.26,4.72-2,26.43-.54,52.91-1.08,79.36-.06,2.63-.7,5.25-.94,7.89-.19,2.09-1.6,2.59-3.29,3.14a335.19,335.19,0,0,1-39.5,9.83A384.93,384.93,0,0,1,496.09,477C483.19,478,470.22,479.17,460.18,478.35Z", labelPos: { x: 454.1, y: 367.5 } },
+  { key: ["leftUpperArm"], label: "L Upper Arm", d: "M255.57,301.71c2,16.25,6.13,31,15.31,43.91a111.09,111.09,0,0,0,30.05,28.66c3.38,2.22,2.89,3.84.85,6.42-14.18,17.91-30.45,33.86-46.82,49.68-10,9.68-20.66,18.72-30.94,28.15-1.68,1.55-2.74,1.71-4.54.1C204.9,445.56,192.11,431.15,184,413c-1.84-4.1-2.3-7.12.81-11.17,20.44-26.57,38.26-55,57.79-82.23C246.87,313.63,251.23,307.68,255.57,301.71Z", labelPos: { x: 243.0, y: 380.7 } },
+  { key: ["rightUpperArm"], label: "R Upper Arm", d: "M652.65,298.75c11.38,15,21.2,29.33,31.05,43.61,13.74,19.91,27,40.19,41.82,59.33,2.26,2.92,2.27,5.65.9,8.78a124,124,0,0,1-18,28.52c-5.38,6.57-11.67,12.22-17.87,18-1.83,1.7-2.8,1.88-4.8.11-10.29-9.15-20.54-18.34-30.65-27.7-11-10.16-21.65-20.59-31.66-31.73-5.42-6-10.63-12.26-15.75-18.56-2.26-2.77-1.81-4,.82-5.79A121.73,121.73,0,0,0,626,359.35C642.43,343.15,652.6,324,652.65,298.75Z", labelPos: { x: 666.8, y: 378.5 } },
+  { key: ["midBack"], label: "Mid Back", d: "M452.17,562.33c-20.35-.7-40.14-.86-59.84-2.22-19-1.31-37.85-3.82-56.76-5.89-3.23-.35-4.93-1.17-4.44-5.68a162.47,162.47,0,0,0,.27-25.92c-.5-9.91-1.81-19.77-2.7-29.66-.76-8.41-1.13-16.87-2.26-25.23-.59-4.28,1-3.6,3.69-2.73a267.19,267.19,0,0,0,38,9.56c14.66,2.53,29.36,4.57,44.21,5.94a507.56,507.56,0,0,0,61.76,1.65,421.69,421.69,0,0,0,70-7.44c10.57-2.1,21-4.49,31.4-7.38,5-1.37,5.6-.74,5,4.14-1,8.37-1.8,16.77-3.05,25.11a286,286,0,0,0-2.83,50.13c.11,4.31-.66,6-5.73,6.85-19,3.16-38.1,4.53-57.16,6.55a229.33,229.33,0,0,1-27.37,1.08C473.45,561,462.54,562.42,452.17,562.33Z", labelPos: { x: 453.5, y: 513.3 } },
+  { key: ["leftElbow"], label: "L Elbow", d: "M178.42,411.72c4.81,9.95,9.93,19.59,17,28.1a136.41,136.41,0,0,0,20.69,20.64c2.68,2.09,3.66,3.3.74,6.4-10.24,10.9-18.4,23.44-27.13,35.52-4.36,6-4.21,5.91-9.68.78-14.29-13.42-23.57-30.3-32.94-47.14-.78-1.4-1.54-2.64-.22-4.5,9.55-13.34,19.68-26.23,30.09-38.9A6,6,0,0,1,178.42,411.72Z", labelPos: { x: 182.4, y: 459.3 } },
+  { key: ["rightElbow"], label: "R Elbow", d: "M725.06,506.06c-1.78-.12-2.49-1.31-3.27-2.37q-11.65-15.78-23.29-31.58a9.17,9.17,0,0,0-.55-.83c-2.57-3-7.19-5.79-6.54-9.32.56-3,5-5.34,7.93-7.81a114.91,114.91,0,0,0,29.18-38.56c2.72-5.68,2.89-5.72,6.76-1.07,9.23,11.08,17.86,22.62,26.34,34.27,1.52,2.07,2,3.81.68,6.31-9.44,17.6-19.35,34.84-34.43,48.43Z", labelPos: { x: 727.2, y: 458.6 } },
+  { key: ["leftLowerArm"], label: "L Forearm", d: "M105.5,581.13a18.52,18.52,0,0,1-1.83-1.42c-10-9.93-20.39-19.58-27.47-32.08-1.1-1.93-1.06-3,.11-4.78a658.58,658.58,0,0,1,44-59.65c6.46-7.78,13-15.53,19.34-23.36,2.19-2.68,3.35-2.27,4.78.73,8.71,18.32,20,34.83,34.89,48.75,3,2.78,2,4.72-.17,7a248.54,248.54,0,0,1-32.24,28.92c-12.67,9.39-25.18,19-36.15,30.42C109.05,577.45,108.42,580.21,105.5,581.13Z", labelPos: { x: 128.3, y: 519.6 } },
+  { key: ["rightLowerArm"], label: "R Forearm", d: "M767.08,455.19c6.47,7.58,12.67,14.46,18.45,21.66C801.69,497,817.37,517.53,831.84,539c2.51,3.72,2.51,6.28,0,10.08-7.12,11-16.46,19.94-25.6,29.12-1.66,1.67-2.72,1.84-4.35,0-15.13-17-33.88-29.65-51.44-43.76-7.48-6-14.64-12.46-20.63-20.14-2-2.63-2-3.87.25-6a155.24,155.24,0,0,0,27.49-34.53A151.2,151.2,0,0,0,767.08,455.19Z", labelPos: { x: 781.0, y: 517.4 } },
+  { key: ["lowerBack"], label: "Lower Back", d: "M450,647.35c-14,.56-31.89-.74-49.73-2.28a454.48,454.48,0,0,1-80.56-13.92c-4-1.1-5.56-2.64-4.48-7.34,4.62-20.15,10.59-40,13.61-60.51.5-3.42,1.5-4.89,6-4.27,14.91,2.06,29.93,3.25,45,4.44A850.63,850.63,0,0,0,473.41,566c19.35-.61,38.73-1.54,58.05-3.47,13.5-1.35,27-2.76,40.42-4.65,3.78-.53,3,2.17,3.21,3.5,1.75,11,4,21.79,6.51,32.58s4.79,21.32,7.46,31.91c.84,3.34.29,4.66-3.24,5.59A446.81,446.81,0,0,1,522,643.41,638.82,638.82,0,0,1,450,647.35Z", labelPos: { x: 452.2, y: 602.6 } },
+  { key: ["buttocks"], label: "Buttocks", d: "M597.61,696.57c.34,19.45-.24,37.17-2.86,54.8-.4,2.65-1.41,3.51-3.93,4.09-16.93,3.92-34.08,6.44-51.27,8.93-19.85,2.88-39.85,3.89-59.79,5.61-8.89.77-18.41,2.36-26.57-3.72-1.12-.84-2-1.17-2.56.6-1,3.3-3.58,3.31-6.38,3.41-25.16.87-49.87-2.85-74.62-6.72-17.83-2.79-35.56-5.82-53.07-10.24-3.71-.93-4.84-2.46-5-6.35-1-20.88-3.62-41.67-2.87-62.64.4-11.1,2.41-22,3.48-33.06.41-4.11,1.31-8.19,1.45-12.31s1.46-5.31,5.56-4.09a328.61,328.61,0,0,0,37.24,8.53c15.65,2.71,31.4,4.49,47.21,6,25.41,2.49,50.84,2,76.25,1.68,15.54-.19,31.06-1.78,46.55-3.49a451.59,451.59,0,0,0,63.87-11.7c2.82-.73,3,.84,3.35,2.83C596.75,658.46,598.39,678.27,597.61,696.57Z", labelPos: { x: 453.2, y: 702.6 } },
+  { key: ["leftWrist"], label: "L Wrist", d: "M100.68,585.81a8.44,8.44,0,0,1-.66,1.51C94.17,596.7,90.38,607,87.23,617.5c-.93,3.07-1.8,3.55-4.64,1.79-13-8.08-23.88-18.46-33.56-30.21-1-1.27-1.73-2.45-.53-4,7.73-9.84,12.48-21.53,19.68-31.71,2.07-2.92,3.24-3.45,5.4.09C80,564.07,89,572.47,97.86,581,99.13,582.24,100.82,583.3,100.68,585.81Z", labelPos: { x: 74.3, y: 585.6 } },
+  { key: ["rightWrist"], label: "R Wrist", d: "M861.79,585.8a55.89,55.89,0,0,1-4.36,6c-9,9.5-18.24,18.79-29.55,25.73-3.46,2.12-4.76,1.5-5.86-2.25-3-10.36-6.82-20.45-12.6-29.65-1.36-2.16-.38-3.47,1.08-4.68,10.43-8.61,18.89-19,26.65-30,2.32-3.29,3.38-.28,4.22,1.07,4.21,6.75,8.18,13.64,12.31,20.43,2,3.26,4.13,6.4,6.16,9.63C860.54,583.25,861.08,584.45,861.79,585.8Z", labelPos: { x: 835.3, y: 584.1 } },
+  { key: ["leftHand"], label: "L Hand", d: "M48.65,671.69c.36-4.68,2.76-8.92,4.56-13.35,1.62-4,3.37-8,4.92-12,1.1-2.83,1-4.14-3-3.54-10.85,1.63-17.54,8.68-23.51,16.84s-9.68,17.76-13.84,27A62.54,62.54,0,0,1,15,692.53c-1.11,1.92-1.76,4.76-4.6,4.6s-4.09-2.62-5.22-4.86c-3-5.89-3.34-12.4-4.5-18.74-3.19-17.46,4.83-31.14,14.64-44.24,8.65-11.54,17.48-22.94,26-34.57,1.87-2.55,2.91-2.45,4.92-.43,10.87,11,21.35,22.38,34.57,30.72,2,1.3,2,3,1,5.18-7,14-13.84,28-23.31,40.48-1.1,1.45-2.47,2.69-3.71,4s-3.11,2.12-5,1.28S49,673.34,48.65,671.69Z", labelPos: { x: 41.2, y: 645.0 } },
+  { key: ["rightHand"], label: "R Hand", d: "M909.57,666.4c-.94,6.69-1.45,14.8-4,22.57a11.79,11.79,0,0,1-2.43,4.3c-3.68,4.1-5.42,3.94-8-1-5.08-9.71-8.47-20.23-14.33-29.57-6.13-9.79-13.3-18.27-25.3-21-4.4-1-5.27-.3-3.75,4,2,5.61,4.48,11.06,6.87,16.53a45.84,45.84,0,0,1,2.43,8.58c.37,1.69.24,3.1-1.06,4-1.64,1.15-3.06.16-4.41-1-6-5.21-10.07-11.93-13.92-18.68-4.85-8.51-9.08-17.38-13.7-26-1.21-2.28-1.33-3.95,1.05-5.44,13-8.1,23.22-19.28,33.78-30.08,2.57-2.63,3.75-3,6,.37,10.27,15.26,22.34,29.21,32.56,44.53A47.9,47.9,0,0,1,909.57,666.4Z", labelPos: { x: 868.4, y: 643.9 } },
+  { key: ["leftThigh"], label: "L Thigh", d: "M431.7,954.25a527.26,527.26,0,0,1-60.27-5.78c-8.32-1.33-16.69-2.34-25-4-2.71-.56-3.51-2-3.78-4.39-3.53-31.93-10.41-63.27-16.43-94.77-4-20.77-8.42-41.47-10.64-62.55-.74-7.07-1.76-14.1-2.73-21.14-.4-2.88.45-3.44,3.3-2.7,18.76,4.86,37.9,7.78,57.09,10.19,9,1.14,18.15,1.54,27.24,2.19q21.57,1.54,43.15,2.93c2.46.16,3.15,1.07,2.7,3.46-2.48,13.22-2.94,26.62-3.87,40-1.57,22.47-1,44.93-.6,67.37.34,20.92,1.81,41.82,1.77,62.76,0,6.46,0,6.46-6.47,6.46Z", labelPos: { x: 379.6, y: 856.5 } },
+  { key: ["rightThigh"], label: "R Thigh", d: "M474.81,954.25c-1.33,0-2.66,0-4,0-9.05-.18-8.78,1.54-8-8.25,1-11.82.26-23.61.86-35.38,1.16-22.73,2.43-45.49,1.71-68.22-.68-21.17-.89-42.42-4.63-63.39-.48-2.69-.24-4.32,3.45-5,8.24-1.48,16.57-1,24.81-1.49,33.74-2,67.29-5.19,100.16-13.43,3.93-1,4.69,0,4.44,3.57-.87,11.88-2.68,23.66-4.49,35.41-4.87,31.69-11.95,63-17.71,94.51-3,16.1-5.15,32.31-7.73,48.45-.36,2.24-1,2.91-3.24,3.34-15.26,3-30.61,5.2-46.06,6.92Q494.68,953.48,474.81,954.25Z", labelPos: { x: 527.1, y: 856.5 } },
+  { key: ["leftKnee"], label: "L Knee", d: "M441.55,961.63a280,280,0,0,0-5.34,27.65c-2.28,16.61-3.48,33.25-.71,49.94,1.2,7.25,1.26,7-5.72,7.13-16.79.34-33.49-1.26-50.22-2.23-9.23-.54-18.41-1.95-27.61-3-4.05-.47-5.68-2-5-6.82,1.62-11.7,1.25-23.6.23-35.34-.55-6.43-.46-12.88-1.24-19.32-1.05-8.68-1.21-17.5-2.21-26.22-.37-3.27-.51-5.44,4.6-4.41a429.62,429.62,0,0,0,65.36,8.48c8.13.37,16.25.52,24.38.75C440.35,958.29,442.25,958.49,441.55,961.63Z", labelPos: { x: 392.6, y: 997.6 } },
+  { key: ["rightKnee"], label: "R Knee", d: "M472.63,1019.62c.51-20.2-3.18-38.73-7.23-57.17-.82-3.75.15-4.36,3.4-4.22,14.81.64,29.55-.78,44.24-2.15A367.56,367.56,0,0,0,558.59,949c3.15-.7,4.21-.42,4.11,3-.4,13.09-1.71,26.11-2.82,39.15-.16,1.82-.23,3.66-.23,5.49,0,13.09-.13,26.19.07,39.29,0,3.69-1.38,5.06-4.83,5.31-17.18,1.27-34.28,3.32-51.49,4.35-10.1.61-20.27-.43-30.32,1.29-3.19.55-2.56-2-2.21-3.65A98.58,98.58,0,0,0,472.63,1019.62Z", labelPos: { x: 513.9, y: 997.8 } },
+  { key: ["leftLowerLeg"], label: "L Lower Leg", d: "M342.73,1086a169.23,169.23,0,0,1,2.78-38.5c.55-3,1.64-3.41,4.23-3.17,14.33,1.36,28.67,2.55,43,3.9a373.16,373.16,0,0,0,41.75,1.93c2.56,0,3.66,1.25,4.05,3.43,2.21,12.54,4.86,25,5.3,37.81.22,6.45,1,12.91.76,19.38-.61,16.72-1.47,33.4-3.74,50-2.12,15.56-3.39,31.23-5.26,46.83-2.12,17.78-3.42,35.58-4.3,53.48-.42,8.69.74,17.19.44,25.79-.11,3.17-.86,4.54-4.23,4.31a314.66,314.66,0,0,1-42.21-5.88c-3.26-.66-3.38-3.06-3.51-5.17-1.73-27.65-9.15-54.08-16.84-80.48-6.86-23.52-14.34-46.87-18.67-71C343.74,1114.42,341.91,1100.15,342.73,1086Z", labelPos: { x: 393.6, y: 1167.7 } },
+  { key: ["rightLowerLeg"], label: "R Lower Leg", d: "M564.76,1081.87c-.12,32.38-6.15,60-13.93,87.3-7.57,26.59-16.45,52.85-21.66,80.08a275.22,275.22,0,0,0-4.42,31.92c-.21,3-1.12,3.74-3.94,4.29a336.79,336.79,0,0,1-41.23,5.75c-3,.21-4.37.13-4.21-4.13a430.81,430.81,0,0,0-1.4-53.27c-1.23-14-3-28-4.38-42-1.31-12.83-3.41-25.58-4.66-38.41-1.42-14.53-2.34-29.09-2.39-43.73-.07-18.5,1.45-36.73,5.6-54.77.83-3.58,2.25-4.92,6-4.78,15.63.62,31.18-1.17,46.75-2.07,11.88-.69,23.69-2.45,35.52-3.79,3-.34,4.81.5,5.22,3.73C563.2,1060.52,565.28,1073,564.76,1081.87Z", labelPos: { x: 513.7, y: 1167.7 } },
+  { key: ["leftFootOrAnkle"], label: "L Foot / Ankle", d: "M441,1321.7c-2.44,12.67-1.71,26.68-3.35,40.5-1,8.07-7.55,13.38-16.88,14a27,27,0,0,1-14.41-2.63c-13.78-7-27.87-13.48-38.72-25a56.46,56.46,0,0,1-10.09-14.72c-1.58-3.34-.66-5.41,2.65-6.64s6.76-3.15,10.3-3.66c6.65-1,9.2-5.16,10.13-11,1.13-7,2.29-14,3-21.12.32-3.18,1.73-3.57,4.22-3,13.78,2.9,27.78,4.22,41.74,5.79,1.13.13,2.5-.2,3,1.26,1.91,6,6.34,11,7.79,17.18C440.87,1315.18,440.69,1317.92,441,1321.7Z", labelPos: { x: 398.9, y: 1332.3 } },
+  { key: ["rightFootOrAnkle"], label: "R Foot / Ankle", d: "M489.29,1376.19a39.68,39.68,0,0,1-5.92-.52c-11.4-2.46-13.59-6.57-14.59-18.16s-1-23.48-3-35.12c-1.18-6.87,1.36-13.08,4.78-18.94,1.25-2.14,2.77-4.12,3.38-6.63.42-1.74,1.65-2.49,3.64-2.69,14-1.42,27.93-3,41.72-5.73,3.36-.65,4.51.5,4.38,3.86-.33,8.72,2,17,4,25.43.61,2.57,2.2,3.82,4.64,4.6,5,1.62,10,3.48,15,5.25,3.28,1.17,3.65,3,2.12,6.18-6.76,13.88-18,23.18-31.07,30.49-7.1,4-14.55,7.3-21.78,11C494.23,1376.47,491.76,1376,489.29,1376.19Z", labelPos: { x: 507.9, y: 1332.2 } },
+  { key: ["eyes"], label: "Eyes", d: "M613.72,52.2c22.4-12.9,53.62-37.34,112.67,0Zm1,0c22.4,12.89,53.63,37.33,112.68,0Z M751.94,52.2c22.4-12.9,53.63-37.34,112.68,0Zm1,0c22.4,12.89,53.62,37.33,112.68,0Z", labelPos: { x: 739.7, y: 92.0 } },
+];
+
+const BodyDiagram: React.FC<BodyDiagramProps> = ({
+  data,
+  resultLabel,
+  variant = "compact",
+}) => {
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  // Dynamically calculate the color spectrum array based on the current mode and maximum data
+  const activeSpectrum = useMemo(() => {
+    if (resultLabel === "COUNT") {
+      const values = Object.values(data);
+      const maxVal = values.length > 0 ? Math.max(...values) : 0;
+
+      if (maxVal <= 0) {
+        return [
+          ZERO_BUCKET,
+          { min: 1, max: 1, label: "1", ...BASE_COLORS[0] },
+          { min: 2, max: 2, label: "2", ...BASE_COLORS[1] },
+          { min: 3, max: 3, label: "3", ...BASE_COLORS[2] },
+          { min: 4, max: 99999, label: "4+", ...BASE_COLORS[3] },
+        ];
+      }
+
+      const step = Math.max(1, Math.ceil(maxVal / 4));
+      return [
+        ZERO_BUCKET,
+        { min: 1, max: step, label: `1-${step}`, ...BASE_COLORS[0] },
+        { min: step + 1, max: step * 2, label: `${step + 1}-${step * 2}`, ...BASE_COLORS[1] },
+        { min: step * 2 + 1, max: step * 3, label: `${step * 2 + 1}-${step * 3}`, ...BASE_COLORS[2] },
+        { min: step * 3 + 1, max: 99999, label: `${step * 3 + 1}+`, ...BASE_COLORS[3] },
+      ];
+    }
+
+    // Default mode for severity & average: scales out of 10
+    return [
+      ZERO_BUCKET,
+      { min: 1, max: 2, label: "1-2", ...BASE_COLORS[0] },
+      { min: 3, max: 4, label: "3-4", ...BASE_COLORS[1] },
+      { min: 5, max: 6, label: "5-6", ...BASE_COLORS[2] },
+      { min: 7, max: 99999, label: "7-10", ...BASE_COLORS[3] },
+    ];
+  }, [data, resultLabel]);
+
+  const getColor = (v: number) => {
+    return activeSpectrum.find((s) => v >= s.min && v <= s.max) || activeSpectrum[activeSpectrum.length - 1];
+  };
+
+  const getValue = (keys: string[]): number => {
+    for (const k of keys) {
+      if (data[k] !== undefined && data[k] > 0) return data[k];
+    }
+    return 0;
+  };
+
+  const allZero = Object.values(data).every((v) => v === 0) || Object.keys(data).length === 0;
+
+  // Determine intelligent color for the result badge based on the string text
+  let resultColor = "#38bdf8";
+  if (resultLabel === "PASS") resultColor = "#10b981";
+  else if (resultLabel === "ASSESSMENT") resultColor = "#ef4444";
+  else if (resultLabel === "ACTION NEEDED") resultColor = "#f59e0b";
+  else if (resultLabel === "COUNT") resultColor = "#8b5cf6";
+  else if (resultLabel === "AVG") resultColor = "#f43f5e";
+
+  const isCompact = variant === "compact";
+  const width = isCompact ? 220 : 300;
+  const height = isCompact ? 340 : 440;
+
+  const hoveredPart = BODY_PARTS.find((p) => p.key.join(",") === hovered);
+  const hoveredValue = hoveredPart ? getValue(hoveredPart.key) : 0;
+  const hoveredSpectrum = hoveredPart ? getColor(hoveredValue) : activeSpectrum[0];
+
+  let tooltipText = "No Discomfort";
+  if (hoveredValue > 0) {
+    if (resultLabel === "COUNT") tooltipText = `${hoveredValue} Reports`;
+    else if (resultLabel === "AVG") tooltipText = `Avg Level ${hoveredValue}`;
+    else tooltipText = `Level ${hoveredValue}`;
+  }
+
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        width,
+        height,
+        bgcolor: "#0f172a",
+        borderRadius: "16px",
+        border: "1px solid",
+        borderColor: alpha("#94a3b8", 0.15),
+        overflow: "hidden",
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 12px 32px -8px rgba(0,0,0,0.4)",
+      }}
+    >
+      <Box sx={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <Box
+          sx={{
+            position: "absolute", inset: 0,
+            backgroundImage: `
+              radial-gradient(circle at center, ${alpha("#38bdf8", 0.06)} 0%, transparent 70%),
+              linear-gradient(0deg, transparent 24%, ${alpha("#ffffff", 0.03)} 25%, ${alpha("#ffffff", 0.03)} 26%, transparent 27%, transparent 74%, ${alpha("#ffffff", 0.03)} 75%, ${alpha("#ffffff", 0.03)} 76%, transparent 77%, transparent),
+              linear-gradient(90deg, transparent 24%, ${alpha("#ffffff", 0.03)} 25%, ${alpha("#ffffff", 0.03)} 26%, transparent 27%, transparent 74%, ${alpha("#ffffff", 0.03)} 75%, ${alpha("#ffffff", 0.03)} 76%, transparent 77%, transparent)
+            `,
+            backgroundSize: "100% 100%, 30px 30px, 30px 30px",
+            pointerEvents: "none",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute", top: "50%", left: "50%",
+            width: "220px", height: "220px",
+            transform: "translate(-50%, -50%)",
+            border: `1px solid ${alpha("#38bdf8", 0.1)}`,
+            borderRadius: "50%", pointerEvents: "none",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute", top: "50%", left: "50%",
+            width: "320px", height: "320px",
+            transform: "translate(-50%, -50%)",
+            border: `1px dashed ${alpha("#38bdf8", 0.15)}`,
+            borderRadius: "50%", pointerEvents: "none",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute", top: 50, right: 12, zIndex: 10,
+            bgcolor: alpha(resultColor, 0.15),
+            color: resultColor,
+            px: 1.25, py: 0.5,
+            borderRadius: "6px",
+            fontWeight: 700,
+            fontSize: isCompact ? 9 : 11,
+            letterSpacing: "0.06em",
+            border: `1px solid ${alpha(resultColor, 0.3)}`,
+            backdropFilter: "blur(8px)",
+            boxShadow: `0 0 16px ${alpha(resultColor, 0.15)}`,
+          }}
+        >
+          {resultLabel}
+        </Box>
+        {hoveredPart && (
+          <Box
+            sx={{
+              position: "absolute", top: 12, left: 12, zIndex: 10,
+              bgcolor: alpha("#020617", 0.85),
+              border: `1px solid ${alpha(hoveredSpectrum.border, 0.4)}`,
+              borderLeft: `3px solid ${hoveredSpectrum.border}`,
+              borderRadius: "6px",
+              px: 1.5, py: 1,
+              backdropFilter: "blur(8px)",
+              boxShadow: `0 4px 20px ${alpha(hoveredSpectrum.border, 0.15)}`,
+              pointerEvents: "none",
+            }}
+          >
+            <Typography sx={{ color: "#94a3b8", fontSize: isCompact ? 9 : 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.25 }}>
+              {hoveredPart.label}
+            </Typography>
+            <Typography sx={{ color: hoveredSpectrum.light, fontSize: isCompact ? 13 : 15, fontWeight: 800, lineHeight: 1 }}>
+              {tooltipText}
+            </Typography>
+          </Box>
+        )}
+        <svg
+          viewBox="0 0 909.57 1376.26"
+          style={{
+            width: "100%", height: "100%",
+            position: "relative", zIndex: 5,
+            filter: "drop-shadow(0px 10px 15px rgba(0,0,0,0.5))",
+            marginTop: isCompact ? 4 : 10,
+          }}
+        >
+          <defs>
+            {activeSpectrum.map((s, i) => (
+              <linearGradient key={`grad-${i}`} id={`grad${i}`} x1="20%" y1="0%" x2="80%" y2="100%">
+                <stop offset="0%" stopColor={s.light} />
+                <stop offset="100%" stopColor={s.fill} />
+              </linearGradient>
+            ))}
+            {activeSpectrum.map((s, i) => {
+              if (i === 0) return null; // No glow for zero
+              return (
+                <filter key={`glow-${i}`} id={`glow${i}`} x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="14" result="blur" />
+                  <feFlood floodColor={s.glow} result="color" />
+                  <feComposite in2="blur" operator="in" result="shadow" />
+                  <feMerge>
+                    <feMergeNode in="shadow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              );
+            })}
+            <filter id="hoverGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="12" result="blur" />
+              <feFlood floodColor="rgba(255, 255, 255, 0.4)" result="color" />
+              <feComposite in2="blur" operator="in" result="shadow" />
+              <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g>
+            {BODY_PARTS.map((part) => {
+              const val = allZero ? 0 : getValue(part.key);
+              const spectrum = getColor(val);
+              const spectrumIdx = activeSpectrum.findIndex((s) => val >= s.min && val <= s.max);
+              const partId = part.key.join(",");
+
+              const isHovered = hovered === partId;
+              const isOtherHovered = hovered && hovered !== partId;
+
+              return (
+                <g
+                  key={partId}
+                  onMouseEnter={() => setHovered(partId)}
+                  onMouseLeave={() => setHovered(null)}
+                  style={{
+                    cursor: "pointer",
+                    // Dim unhovered parts to bring focus to the active one
+                    opacity: isOtherHovered ? 0.3 : 1,
+                    transition: "opacity 0.25s ease-in-out",
+                  }}
+                >
+                  <path
+                    d={part.d}
+                    fill={`url(#grad${spectrumIdx})`}
+                    stroke={isHovered ? "#fff" : spectrum.border}
+                    strokeWidth={isHovered ? 8 : val > 0 ? 6 : 3}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    filter={isHovered ? "url(#hoverGlow)" : val > 0 ? `url(#glow${spectrumIdx})` : undefined}
+                    style={{ transition: "all 0.25s ease" }}
+                  />
+                  {!(part.key[0] === "eyes" && val === 0) && (
+                    <g transform={`translate(${part.labelPos.x}, ${part.labelPos.y})`}>
+                      {val > 0 && (
+                        <circle cx="0" cy="0" r={isCompact ? 24 : 28} fill="#0f172a" opacity="0.6" />
+                      )}
+                      <text
+                        x="0"
+                        y="0"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill={val > 0 ? spectrum.text : "#475569"}
+                        fontSize={part.key[0] === "eyes" ? 22 : isCompact ? 30 : 36}
+                        fontWeight={val > 0 ? 800 : 600}
+                        fontFamily="system-ui, -apple-system, sans-serif"
+                        style={{ pointerEvents: "none", userSelect: "none" }}
+                      >
+                        {val}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 1.5, py: 1.25,
+          borderTop: `1px solid ${alpha("#94a3b8", 0.1)}`,
+          bgcolor: alpha("#000", 0.25),
+          zIndex: 2,
+        }}
+      >
+        {activeSpectrum.map((s, i) => (
+          <Box key={`legend-${i}`} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box
+              sx={{
+                width: isCompact ? 10 : 12, height: isCompact ? 10 : 12,
+                borderRadius: "3px",
+                background: i === 0 ? "#1e293b" : `linear-gradient(135deg, ${s.light}, ${s.fill})`,
+                border: `1px solid ${s.border}`,
+                boxShadow: i > 0 ? `0 0 8px ${s.glow}` : "none",
+              }}
+            />
+            <Typography sx={{ color: "#94a3b8", fontSize: isCompact ? "0.6rem" : "0.7rem", fontWeight: 600, fontFamily: "system-ui, sans-serif" }}>
+              {s.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
+export default BodyDiagram;
