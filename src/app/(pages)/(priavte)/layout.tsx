@@ -49,7 +49,6 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
           flexGrow: 1,
           p: { xs: 1.5, sm: 2, md: 3 },
           pt: { xs: "64px", md: "80px" },
-          ml: { xs: 0, md: `${DRAWER_WIDTH}px` },
           maxWidth: "100%",
           overflow: "hidden",
           width: { xs: "100%", md: `calc(100% - ${DRAWER_WIDTH}px)` },
