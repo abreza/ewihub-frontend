@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Grid, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Chip, Button, TextField,
-  alpha, InputAdornment, Select, MenuItem
+  alpha, InputAdornment, Select, MenuItem, CircularProgress,
 } from "@mui/material";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -14,12 +14,22 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
-import { getOEReportData, getProgramStats } from "@/data/employeeAdapter";
+import {
+  useGetCourseReportQuery,
+  useGetProgramStatsQuery,
+} from "@/lib/redux/api/employeeApi";
+import { toOEReportRow, toUIProgramStats, nameToSlug, type OEReportRow } from "@/data/employeeAdapter";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
   Completed: { bg: "#dcfce7", color: "#15803d" },
   "In Progress": { bg: "#fff7ed", color: "#c2410c" },
   "Not Taken": { bg: "#f1f5f9", color: "#64748b" },
+};
+
+const FILTER_STATUS_MAP: Record<string, string | undefined> = {
+  All: undefined,
+  Completed: "completed",
+  "In Progress": "pending",
 };
 
 const DonutChart = ({ completed, inProgress }: { completed: number; inProgress: number }) => {
@@ -60,35 +70,35 @@ export default function OfficeErgonomicsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const allData = useMemo(() => getOEReportData(), []);
-  const stats = useMemo(() => getProgramStats(), []);
+  const { data: rawStats } = useGetProgramStatsQuery();
+  const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
 
-  const filteredData = useMemo(() => {
-    let rows = allData;
-    if (activeFilter !== "All") {
-      rows = rows.filter((r) => r.status === activeFilter);
-    }
-    if (searchTerm) {
-      rows = rows.filter((r) =>
-        r.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return rows;
-  }, [allData, activeFilter, searchTerm]);
+  const { data: reportResponse, isLoading: isLoadingReport } = useGetCourseReportQuery({
+    course: "Office Ergonomics",
+    search: searchTerm || undefined,
+    status: FILTER_STATUS_MAP[activeFilter],
+    page,
+    limit: pageSize,
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const rows: OEReportRow[] = useMemo(
+    () => (reportResponse?.data ? reportResponse.data.map(toOEReportRow) : []),
+    [reportResponse]
   );
 
-  const insights = [
-    { label: "Total Enrolled", value: String(stats.oe.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb", bg: alpha("#2563eb", 0.08) },
-    { label: "In Progress", value: String(stats.oe.inProgress), icon: <TrendingUpRoundedIcon />, color: "#ea580c", bg: alpha("#ea580c", 0.08) },
-    { label: "Completed", value: String(stats.oe.completed), icon: <CheckCircleRoundedIcon />, color: "#16a34a", bg: alpha("#16a34a", 0.08) },
-    { label: "Avg. Days", value: "1", icon: <TimerRoundedIcon />, color: "#7c3aed", bg: alpha("#7c3aed", 0.08) },
-  ];
+  const meta = reportResponse?.meta;
+  const totalPages = meta?.totalPages ?? 1;
+  const currentPage = meta?.page ?? page;
+  const totalEntries = meta?.total ?? 0;
+
+  const insights = stats
+    ? [
+      { label: "Total Enrolled", value: String(stats.oe.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb", bg: alpha("#2563eb", 0.08) },
+      { label: "In Progress", value: String(stats.oe.inProgress), icon: <TrendingUpRoundedIcon />, color: "#ea580c", bg: alpha("#ea580c", 0.08) },
+      { label: "Completed", value: String(stats.oe.completed), icon: <CheckCircleRoundedIcon />, color: "#16a34a", bg: alpha("#16a34a", 0.08) },
+      { label: "Avg. Days", value: "1", icon: <TimerRoundedIcon />, color: "#7c3aed", bg: alpha("#7c3aed", 0.08) },
+    ]
+    : [];
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -121,19 +131,23 @@ export default function OfficeErgonomicsPage() {
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
               <Typography variant="subtitle1" sx={{ mb: 1 }}>Result Summary</Typography>
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: { xs: 220, md: 280 } }}>
-                <Box>
-                  <DonutChart completed={stats.oe.completed} inProgress={stats.oe.inProgress} />
-                  <Box sx={{ display: "flex", justifyContent: "center", gap: { xs: 2, sm: 3 }, mt: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#16a34a" }} />
-                      <Typography variant="body2" color="text.secondary">Completed ({stats.oe.completed})</Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#f97316" }} />
-                      <Typography variant="body2" color="text.secondary">In Progress ({stats.oe.inProgress})</Typography>
+                {stats ? (
+                  <Box>
+                    <DonutChart completed={stats.oe.completed} inProgress={stats.oe.inProgress} />
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: { xs: 2, sm: 3 }, mt: 2 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#16a34a" }} />
+                        <Typography variant="body2" color="text.secondary">Completed ({stats.oe.completed})</Typography>
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#f97316" }} />
+                        <Typography variant="body2" color="text.secondary">In Progress ({stats.oe.inProgress})</Typography>
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
+                ) : (
+                  <CircularProgress size={28} />
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -194,43 +208,56 @@ export default function OfficeErgonomicsPage() {
             </Box>
 
             <TableContainer component={Paper} elevation={0} sx={{ overflow: "auto" }}>
-              <Table size="small" sx={{ minWidth: 500 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Started</TableCell>
-                    <TableCell>Completed</TableCell>
-                    <TableCell>Result</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedData.map((row) => {
-                    const config = STATUS_CONFIG[row.status] || { bg: "#f1f5f9", color: "#64748b" };
-                    return (
-                      <TableRow key={`${row.id}-${row.name}`} hover sx={{ cursor: "pointer" }}
-                        onClick={() => router.push(`/employees/${row.id}/${row.name.toLowerCase().replace(/\s+/g, "-")}`)}
-                      >
-                        <TableCell sx={{ color: "primary.main", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}>
-                          {row.name}
-                        </TableCell>
-                        <TableCell>{row.start}</TableCell>
-                        <TableCell>{row.end}</TableCell>
-                        <TableCell>
-                          <Chip label={row.status} size="small"
-                            sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", bgcolor: config.bg, color: config.color }}
-                          />
+              {isLoadingReport ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                  <CircularProgress size={28} />
+                </Box>
+              ) : (
+                <Table size="small" sx={{ minWidth: 500 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Started</TableCell>
+                      <TableCell>Completed</TableCell>
+                      <TableCell>Result</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => {
+                      const config = STATUS_CONFIG[row.status] || { bg: "#f1f5f9", color: "#64748b" };
+                      return (
+                        <TableRow key={row.id} hover sx={{ cursor: "pointer" }}
+                          onClick={() => router.push(`/employees/${row.id}/${nameToSlug(row.name)}`)}
+                        >
+                          <TableCell sx={{ color: "primary.main", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}>
+                            {row.name}
+                          </TableCell>
+                          <TableCell>{row.start}</TableCell>
+                          <TableCell>{row.end}</TableCell>
+                          <TableCell>
+                            <Chip label={row.status} size="small"
+                              sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", bgcolor: config.bg, color: config.color }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {!isLoadingReport && rows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} sx={{ textAlign: "center", py: 4 }}>
+                          <Typography variant="body2" color="text.secondary">No data found</Typography>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </TableContainer>
 
             <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid", borderColor: "divider", flexWrap: "wrap", gap: 1 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Typography variant="body2" color="text.secondary">
-                  Page {currentPage} of {totalPages} · {filteredData.length} entries
+                  Page {currentPage} of {totalPages} · {totalEntries} entries
                 </Typography>
                 <Select
                   size="small"

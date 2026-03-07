@@ -1,17 +1,44 @@
 "use client";
 
 import { useMemo } from "react";
-import { Box, Card, CardContent, Typography, Grid, alpha, LinearProgress } from "@mui/material";
+import {
+  Box, Card, CardContent, Typography, Grid, alpha, LinearProgress,
+  CircularProgress,
+} from "@mui/material";
 import ChairAltIcon from "@mui/icons-material/ChairAlt";
 import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { useRouter } from "next/navigation";
-import { getProgramStats } from "@/data/employeeAdapter";
+import { useGetProgramStatsQuery } from "@/lib/redux/api/employeeApi";
+import { toUIProgramStats } from "@/data/employeeAdapter";
 
 export default function HomePage() {
   const router = useRouter();
-  const stats = useMemo(() => getProgramStats(), []);
+  const { data: rawStats, isLoading, error } = useGetProgramStatsQuery();
+
+  const stats = useMemo(
+    () => (rawStats ? toUIProgramStats(rawStats) : null),
+    [rawStats]
+  );
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <Box sx={{ p: 4, textAlign: "center" }}>
+        <Typography variant="h6" color="text.secondary">
+          Failed to load dashboard data
+        </Typography>
+      </Box>
+    );
+  }
 
   const metrics = [
     {

@@ -4,14 +4,15 @@ import { useState, useMemo } from "react";
 import {
   Box, Card, Chip, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Paper, Avatar, Button, TextField,
-  alpha, Tabs, Tab, InputAdornment
+  alpha, Tabs, Tab, InputAdornment, CircularProgress
 } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useParams } from "next/navigation";
-import { getUIEmployeeDetail } from "@/data/employeeAdapter";
+import { useGetEmployeeDetailQuery } from "@/lib/redux/api/employeeApi";
+import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
@@ -20,14 +21,29 @@ import SelfAssessmentSection from "@/components/organisms/SelfAssessmentSection"
 
 export default function EmployeeDetailPage() {
   const params = useParams();
-  const employeeId = parseInt(params?.id as string, 10);
+  const employeeId = params?.id as string;
   const [activeTab, setActiveTab] = useState(0);
   const [timelineTryFilter, setTimelineTryFilter] = useState<"all" | "last">("all");
   const [timelineCourseFilter, setTimelineCourseFilter] = useState<string>("all");
 
-  const employee = useMemo(() => getUIEmployeeDetail(employeeId), [employeeId]);
+  const { data: rawEmployee, isLoading, error } = useGetEmployeeDetailQuery(employeeId, {
+    skip: !employeeId,
+  });
 
-  if (!employee) {
+  const employee = useMemo(
+    () => (rawEmployee ? toUIEmployeeDetail(rawEmployee) : null),
+    [rawEmployee]
+  );
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
+
+  if (error || !employee) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
         <Typography variant="h6" color="text.secondary">

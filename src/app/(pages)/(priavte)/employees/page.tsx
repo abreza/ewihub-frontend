@@ -3,14 +3,15 @@
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Chip, Button, TextField, Typography, InputAdornment,
-  alpha, Avatar, Select, MenuItem
+  alpha, Avatar, Select, MenuItem, CircularProgress,
 } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { getUIEmployees } from "@/data/employeeAdapter";
+import { useGetEmployeesQuery } from "@/lib/redux/api/employeeApi";
+import { toUIEmployees } from "@/data/employeeAdapter";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; border?: string }> = {
   Completed: { bg: "#dcfce7", color: "#15803d" },
@@ -46,22 +47,21 @@ export default function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const allEmployees = useMemo(() => getUIEmployees(), []);
+  const { data: response, isLoading } = useGetEmployeesQuery({
+    search: searchTerm || undefined,
+    page,
+    limit: pageSize,
+  });
 
-  const filteredEmployees = useMemo(
-    () =>
-      allEmployees.filter((emp) =>
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [allEmployees, searchTerm]
+  const employees = useMemo(
+    () => (response?.data ? toUIEmployees(response.data) : []),
+    [response]
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredEmployees.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedEmployees = filteredEmployees.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const meta = response?.meta;
+  const totalPages = meta?.totalPages ?? 1;
+  const currentPage = meta?.page ?? page;
+  const totalCount = meta?.total ?? 0;
 
   const getInitials = (name: string) =>
     name.split(" ").map((w) => w[0]).join("").toUpperCase();
@@ -108,9 +108,9 @@ export default function EmployeesPage() {
         >
           <Typography variant="body2" color="text.secondary">
             <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
-              {filteredEmployees.length}
+              {totalCount}
             </Typography>{" "}
-            of {allEmployees.length} employees
+            employees
           </Typography>
           <TextField
             size="small"
@@ -136,69 +136,86 @@ export default function EmployeesPage() {
         </Box>
 
         <TableContainer component={Paper} elevation={0} sx={{ overflow: "auto" }}>
-          <Table sx={{ minWidth: 500 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: { xs: "40%", md: "35%" } }}>Employee</TableCell>
-                <TableCell>Office Ergonomics</TableCell>
-                <TableCell>Self Assessment</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedEmployees.map((employee, i) => (
-                <TableRow
-                  key={employee.id}
-                  hover
-                  sx={{
-                    cursor: "pointer",
-                    "&:hover": { bgcolor: "#fafbfc" },
-                    transition: "background 0.15s",
-                  }}
-                  onClick={() => router.push(`/employees/${employee.id}/${employee.slug}`)}
-                >
-                  <TableCell>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                      <Avatar
-                        sx={{
-                          width: 34,
-                          height: 34,
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                          bgcolor: alpha(colors[i % colors.length], 0.1),
-                          color: colors[i % colors.length],
-                          display: { xs: "none", sm: "flex" },
-                        }}
-                      >
-                        {getInitials(employee.name)}
-                      </Avatar>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          noWrap
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : (
+            <Table sx={{ minWidth: 500 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: { xs: "40%", md: "35%" } }}>Employee</TableCell>
+                  <TableCell>Office Ergonomics</TableCell>
+                  <TableCell>Self Assessment</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {employees.map((employee, i) => (
+                  <TableRow
+                    key={employee.id}
+                    hover
+                    sx={{
+                      cursor: "pointer",
+                      "&:hover": { bgcolor: "#fafbfc" },
+                      transition: "background 0.15s",
+                    }}
+                    onClick={() =>
+                      router.push(`/employees/${employee.id}/${employee.slug}`)
+                    }
+                  >
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        <Avatar
                           sx={{
-                            fontWeight: 600,
-                            color: "primary.main",
-                            "&:hover": { textDecoration: "underline" },
+                            width: 34,
+                            height: 34,
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                            bgcolor: alpha(colors[i % colors.length], 0.1),
+                            color: colors[i % colors.length],
+                            display: { xs: "none", sm: "flex" },
                           }}
                         >
-                          {employee.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          ID: {employee.id}
-                        </Typography>
+                          {getInitials(employee.name)}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            variant="body2"
+                            noWrap
+                            sx={{
+                              fontWeight: 600,
+                              color: "primary.main",
+                              "&:hover": { textDecoration: "underline" },
+                            }}
+                          >
+                            {employee.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {employee.email}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip status={employee.officeErgonomics} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip status={employee.selfAssessment} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell>
+                      <StatusChip status={employee.officeErgonomics} />
+                    </TableCell>
+                    <TableCell>
+                      <StatusChip status={employee.selfAssessment} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && employees.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} sx={{ textAlign: "center", py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No employees found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </TableContainer>
 
         <Box

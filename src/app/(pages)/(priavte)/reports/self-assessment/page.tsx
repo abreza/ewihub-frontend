@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Grid, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Chip, Button, TextField,
-  alpha, InputAdornment, Tooltip, Select, MenuItem
+  alpha, InputAdornment, Tooltip, Select, MenuItem, CircularProgress,
 } from "@mui/material";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -15,7 +15,12 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useRouter } from "next/navigation";
-import { getSAReportData, getProgramStats } from "@/data/employeeAdapter";
+import {
+  useGetCourseReportQuery,
+  useGetProgramStatsQuery,
+  useGetBodyAggregationQuery,
+} from "@/lib/redux/api/employeeApi";
+import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
 import BodyDiagram from "@/components/organisms/BodyDiagram";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
@@ -26,51 +31,13 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
   "Not Taken": { bg: "#f1f5f9", color: "#64748b" },
 };
 
-function getDiscomfortSummary(): {
-  countData: Record<string, number>;
-  avgData: Record<string, number>;
-  topAreas: { label: string; count: number; avg: number }[];
-} {
-  const countData: Record<string, number> = {
-    head: 8, neck: 82, eyes: 75, leftShoulder: 47, rightShoulder: 48,
-    leftUpperArm: 1, rightUpperArm: 2, upperBack: 34, midBack: 21, lowerBack: 94,
-    leftLowerArm: 8, rightLowerArm: 12, leftElbow: 5, rightElbow: 9,
-    leftWrist: 17, rightWrist: 43, leftHand: 8, rightHand: 17,
-    buttocks: 36, leftThigh: 8, rightThigh: 8, leftKnee: 8, rightKnee: 6,
-    leftLowerLeg: 5, rightLowerLeg: 6, leftFootOrAnkle: 5, rightFootOrAnkle: 5,
-  };
-
-  const avgData: Record<string, number> = {
-    head: 6, neck: 4, eyes: 4, leftShoulder: 4, rightShoulder: 4,
-    leftUpperArm: 2, rightUpperArm: 5, upperBack: 4, midBack: 4, lowerBack: 5,
-    leftLowerArm: 4, rightLowerArm: 5, leftElbow: 4, rightElbow: 4,
-    leftWrist: 4, rightWrist: 4, leftHand: 4, rightHand: 4,
-    buttocks: 5, leftThigh: 4, rightThigh: 4, leftKnee: 4, rightKnee: 4,
-    leftLowerLeg: 5, rightLowerLeg: 5, leftFootOrAnkle: 4, rightFootOrAnkle: 4,
-  };
-
-  const LABELS: Record<string, string> = {
-    head: "Head", neck: "Neck", eyes: "Eyes",
-    leftShoulder: "L Shoulder", rightShoulder: "R Shoulder",
-    leftUpperArm: "L Upper Arm", rightUpperArm: "R Upper Arm",
-    upperBack: "Upper Back", midBack: "Mid Back", lowerBack: "Lower Back",
-    leftLowerArm: "L Forearm", rightLowerArm: "R Forearm",
-    leftElbow: "L Elbow", rightElbow: "R Elbow",
-    leftWrist: "L Wrist", rightWrist: "R Wrist",
-    leftHand: "L Hand", rightHand: "R Hand",
-    buttocks: "Buttocks", leftThigh: "L Thigh", rightThigh: "R Thigh",
-    leftKnee: "L Knee", rightKnee: "R Knee",
-    leftLowerLeg: "L Lower Leg", rightLowerLeg: "R Lower Leg",
-    leftFootOrAnkle: "L Foot / Ankle", rightFootOrAnkle: "R Foot / Ankle",
-  };
-
-  const topAreas = Object.entries(countData)
-    .map(([key, count]) => ({ label: LABELS[key] || key, count, avg: avgData[key] || 0 }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
-
-  return { countData, avgData, topAreas };
-}
+const FILTER_STATUS_MAP: Record<string, string | undefined> = {
+  All: undefined,
+  Pass: "pass",
+  "Action Needed": "action",
+  Assessment: "assessment",
+  "In Progress": "pending",
+};
 
 const DonutChart = ({
   pass, action, assessment, inProgress,
@@ -121,39 +88,47 @@ export default function SelfAssessmentPage() {
   const [pageSize, setPageSize] = useState(5);
   const [discomfortView, setDiscomfortView] = useState<"count" | "average">("count");
 
-  const allData = useMemo(() => getSAReportData(), []);
-  const stats = useMemo(() => getProgramStats(), []);
-  const discomfort = useMemo(() => getDiscomfortSummary(), []);
+  const { data: rawStats } = useGetProgramStatsQuery();
+  const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
 
-  const filteredData = useMemo(() => {
-    let rows = allData;
-    if (activeFilter !== "All") {
-      rows = rows.filter((r) => r.status === activeFilter);
-    }
-    if (searchTerm) {
-      rows = rows.filter((r) =>
-        r.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return rows;
-  }, [allData, activeFilter, searchTerm]);
+  const { data: reportResponse, isLoading: isLoadingReport } = useGetCourseReportQuery({
+    course: "Self Assessment",
+    search: searchTerm || undefined,
+    status: FILTER_STATUS_MAP[activeFilter],
+    page,
+    limit: pageSize,
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+  const rows: SAReportRow[] = useMemo(
+    () => (reportResponse?.data ? reportResponse.data.map(toSAReportRow) : []),
+    [reportResponse]
   );
+
+  const { data: discomfortData } = useGetBodyAggregationQuery({
+    course: "Self Assessment",
+    dataPath: "bodyPartsDiscomfort",
+  });
+
+  const meta = reportResponse?.meta;
+  const totalPages = meta?.totalPages ?? 1;
+  const currentPage = meta?.page ?? page;
+  const totalEntries = meta?.total ?? 0;
 
   const filters = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
 
-  const insights = [
-    { label: "Total Enrolled", value: String(stats.sa.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb", bg: alpha("#2563eb", 0.08) },
-    { label: "Pass", value: String(stats.sa.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a", bg: alpha("#16a34a", 0.08) },
-    { label: "Action Needed", value: String(stats.sa.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c", bg: alpha("#ea580c", 0.08) },
-    { label: "Assessment", value: String(stats.sa.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626", bg: alpha("#dc2626", 0.08) },
-  ];
-  const bodyData = discomfortView === "count" ? discomfort.countData : discomfort.avgData;
+  const insights = stats
+    ? [
+      { label: "Total Enrolled", value: String(stats.sa.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb", bg: alpha("#2563eb", 0.08) },
+      { label: "Pass", value: String(stats.sa.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a", bg: alpha("#16a34a", 0.08) },
+      { label: "Action Needed", value: String(stats.sa.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c", bg: alpha("#ea580c", 0.08) },
+      { label: "Assessment", value: String(stats.sa.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626", bg: alpha("#dc2626", 0.08) },
+    ]
+    : [];
+
+  const bodyData = useMemo(() => {
+    if (!discomfortData) return {};
+    return discomfortView === "count" ? discomfortData.countData : discomfortData.avgData;
+  }, [discomfortData, discomfortView]);
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -187,29 +162,33 @@ export default function SelfAssessmentPage() {
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
               <Typography variant="subtitle1" sx={{ mb: 1 }}>Result Summary</Typography>
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: { xs: 240, md: 280 } }}>
-                <Box>
-                  <DonutChart
-                    pass={stats.sa.pass}
-                    action={stats.sa.action}
-                    assessment={stats.sa.assessment}
-                    inProgress={stats.sa.inProgress}
-                  />
-                  <Box sx={{ display: "flex", justifyContent: "center", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
-                    {[
-                      { label: "Pass", count: stats.sa.pass, color: "#16a34a" },
-                      { label: "Action", count: stats.sa.action, color: "#f59e0b" },
-                      { label: "Assessment", count: stats.sa.assessment, color: "#ef4444" },
-                      { label: "In Progress", count: stats.sa.inProgress, color: "#94a3b8" },
-                    ].map((item) => (
-                      <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: item.color, flexShrink: 0 }} />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.7rem", sm: "0.825rem" } }}>
-                          {item.label} ({item.count})
-                        </Typography>
-                      </Box>
-                    ))}
+                {stats ? (
+                  <Box>
+                    <DonutChart
+                      pass={stats.sa.pass}
+                      action={stats.sa.action}
+                      assessment={stats.sa.assessment}
+                      inProgress={stats.sa.inProgress}
+                    />
+                    <Box sx={{ display: "flex", justifyContent: "center", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
+                      {[
+                        { label: "Pass", count: stats.sa.pass, color: "#16a34a" },
+                        { label: "Action", count: stats.sa.action, color: "#f59e0b" },
+                        { label: "Assessment", count: stats.sa.assessment, color: "#ef4444" },
+                        { label: "In Progress", count: stats.sa.inProgress, color: "#94a3b8" },
+                      ].map((item) => (
+                        <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: item.color, flexShrink: 0 }} />
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.7rem", sm: "0.825rem" } }}>
+                            {item.label} ({item.count})
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
                   </Box>
-                </Box>
+                ) : (
+                  <CircularProgress size={28} />
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -255,11 +234,15 @@ export default function SelfAssessmentPage() {
                 </Box>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <BodyDiagram
-                  data={bodyData}
-                  resultLabel={discomfortView === "count" ? "COUNT" : "AVG"}
-                  variant="full"
-                />
+                {discomfortData ? (
+                  <BodyDiagram
+                    data={bodyData}
+                    resultLabel={discomfortView === "count" ? "COUNT" : "AVG"}
+                    variant="full"
+                  />
+                ) : (
+                  <CircularProgress size={28} />
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -323,49 +306,62 @@ export default function SelfAssessmentPage() {
               />
             </Box>
             <TableContainer component={Paper} elevation={0} sx={{ overflow: "auto" }}>
-              <Table size="small" sx={{ minWidth: 580 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Started</TableCell>
-                    <TableCell>Completed</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Result</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedData.map((row) => {
-                    const config = STATUS_CONFIG[row.status] || { bg: "#f1f5f9", color: "#64748b" };
-                    return (
-                      <TableRow key={`${row.id}-${row.name}`} hover sx={{ cursor: "pointer" }}
-                        onClick={() => router.push(`/employees/${row.id}/${row.name.toLowerCase().replace(/\s+/g, "-")}`)}
-                      >
-                        <TableCell sx={{ color: "primary.main", fontWeight: 600 }}>
-                          {row.name}
-                        </TableCell>
-                        <TableCell>{row.start}</TableCell>
-                        <TableCell>{row.end || "-"}</TableCell>
-                        <TableCell>
-                          <Chip label={row.status} size="small"
-                            sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", bgcolor: config.bg, color: config.color }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
-                            {row.result}
-                          </Typography>
+              {isLoadingReport ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                  <CircularProgress size={28} />
+                </Box>
+              ) : (
+                <Table size="small" sx={{ minWidth: 580 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Started</TableCell>
+                      <TableCell>Completed</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Result</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => {
+                      const config = STATUS_CONFIG[row.status] || { bg: "#f1f5f9", color: "#64748b" };
+                      return (
+                        <TableRow key={row.id} hover sx={{ cursor: "pointer" }}
+                          onClick={() => router.push(`/employees/${row.id}/${nameToSlug(row.name)}`)}
+                        >
+                          <TableCell sx={{ color: "primary.main", fontWeight: 600 }}>
+                            {row.name}
+                          </TableCell>
+                          <TableCell>{row.start}</TableCell>
+                          <TableCell>{row.end || "-"}</TableCell>
+                          <TableCell>
+                            <Chip label={row.status} size="small"
+                              sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", bgcolor: config.bg, color: config.color }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
+                              {row.result}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {!isLoadingReport && rows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} sx={{ textAlign: "center", py: 4 }}>
+                          <Typography variant="body2" color="text.secondary">No data found</Typography>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </TableContainer>
 
             <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid", borderColor: "divider", flexWrap: "wrap", gap: 1 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Typography variant="body2" color="text.secondary">
-                  Page {currentPage} of {totalPages} · {filteredData.length} entries
+                  Page {currentPage} of {totalPages} · {totalEntries} entries
                 </Typography>
                 <Select
                   size="small"
