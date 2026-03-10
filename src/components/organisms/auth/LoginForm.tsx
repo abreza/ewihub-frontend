@@ -48,19 +48,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       return;
     }
 
-    if (username.trim().toLowerCase() === "demo") {
-      dispatch(setToken("fake-demo-token"));
-      toast.success("Logged in with Demo Account");
-      onSuccess?.();
-      return;
-    }
-
     try {
       const result = await login({
         loginDto: { username: username.trim(), password },
       }).unwrap();
 
       dispatch(setToken(result.access_token));
+      toast.success("Logged in successfully");
       onSuccess?.();
     } catch (err) {
       const error = err as { status?: number; data?: { message?: string } };
@@ -125,8 +119,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
               Enter your credentials to access your dashboard.
-              <br />
-              (Hint: Use <b>demo</b> / <b>demo</b> to preview)
             </Typography>
           </Box>
 
@@ -203,7 +195,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
             <Box sx={{ mt: 3, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Dont have an account?
+                Don&apos;t have an account?
               </Typography>
               <Button
                 component={Link}

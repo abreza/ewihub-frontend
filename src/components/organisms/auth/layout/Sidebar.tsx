@@ -25,6 +25,10 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import { usePathname, useRouter } from "next/navigation";
+import { useMe } from "@/lib/hooks/useMe";
+import { useAppDispatch } from "@/lib/redux/hooks";
+import { logout } from "@/lib/redux/slices/authSlice";
+import { emptyApi } from "@/lib/redux/api/emptyApi";
 
 export const DRAWER_WIDTH = 260;
 
@@ -39,6 +43,21 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [reportsOpen, setReportsOpen] = useState(pathname.includes("/reports"));
+
+  const { user } = useMe();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(emptyApi.util.resetApiState());
+    router.replace("/auth/login");
+  };
+
+  const userInitials = user
+    ? `${(user.firstName?.[0] ?? "").toUpperCase()}${(user.lastName?.[0] ?? "").toUpperCase()}`
+    : "?";
+  const userDisplayName = user ? `${user.firstName} ${user.lastName}` : "User";
+  const userEmail = user?.email ?? "";
 
   const isActive = (path: string) => {
     if (path === "/") return pathname === "/";
@@ -224,17 +243,21 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               fontSize: "0.75rem",
             }}
           >
-            DU
+            {userInitials}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#e2e8f0", lineHeight: 1.3 }} noWrap>
-              Demo User
+              {userDisplayName}
             </Typography>
             <Typography sx={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.3 }} noWrap>
-              demo@ewihub.com
+              {userEmail}
             </Typography>
           </Box>
-          <IconButton size="small" sx={{ color: "#64748b", "&:hover": { color: "#94a3b8" } }}>
+          <IconButton
+            size="small"
+            onClick={handleLogout}
+            sx={{ color: "#64748b", "&:hover": { color: "#f87171" } }}
+          >
             <LogoutRoundedIcon sx={{ fontSize: "1rem" }} />
           </IconButton>
         </Box>

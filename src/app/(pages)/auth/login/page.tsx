@@ -11,16 +11,13 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuthControllerLoginMutation } from "@/lib/redux/api/generatedApi";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { setToken } from "@/lib/redux/slices/authSlice";
 import { toast } from "react-toastify";
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-}
-
-export default function LoginForm({ onSuccess }: LoginFormProps) {
+export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +25,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
   const [login, { isLoading }] = useAuthControllerLoginMutation();
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,17 +36,11 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       return;
     }
 
-    if (username.trim().toLowerCase() === "demo") {
-      dispatch(setToken("fake-demo-token"));
-      toast.success("Logged in with Demo Account");
-      onSuccess?.();
-      return;
-    }
-
     try {
       const result = await login({ loginDto: { username: username.trim(), password } }).unwrap();
       dispatch(setToken(result.access_token));
-      onSuccess?.();
+      toast.success("Logged in successfully");
+      router.replace("/");
     } catch (err) {
       const error = err as { status?: number; data?: { message?: string } };
       if (error.status === 401) {
@@ -117,16 +109,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
               Sign in to your ewiHub dashboard
-            </Typography>
-          </Box>
-
-          {/* Demo hint */}
-          <Box sx={{
-            bgcolor: alpha("#2563eb", 0.06), border: "1px solid", borderColor: alpha("#2563eb", 0.1),
-            borderRadius: "8px", px: 2, py: 1.25, mb: 3,
-          }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-              Demo access: use <Typography component="span" sx={{ fontWeight: 700, color: "primary.main" }}>demo</Typography> / <Typography component="span" sx={{ fontWeight: 700, color: "primary.main" }}>demo</Typography>
             </Typography>
           </Box>
 

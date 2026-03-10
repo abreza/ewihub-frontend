@@ -7,6 +7,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { DRAWER_WIDTH } from "./Sidebar";
+import { useMe } from "@/lib/hooks/useMe";
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -14,9 +15,15 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
+  const { user } = useMe();
+
+  const userInitials = user
+    ? `${(user.firstName?.[0] ?? "").toUpperCase()}${(user.lastName?.[0] ?? "").toUpperCase()}`
+    : "?";
+  const userLabel = user ? `${user.firstName} ${user.lastName}` : "User";
 
   const getBreadcrumbItems = (): { label: string; href?: string }[] => {
-    const items: { label: string; href?: string }[] = [{ label: "Demo", href: "/" }];
+    const items: { label: string; href?: string }[] = [{ label: "ewiHub", href: "/" }];
 
     if (pathname === "/") {
       items.push({ label: "Home" });
@@ -152,10 +159,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <Chip
             avatar={
               <Avatar sx={{ bgcolor: "#2563eb", color: "#fff !important", width: 28, height: 28, fontSize: "0.7rem", fontWeight: 700 }}>
-                EW
+                {userInitials}
               </Avatar>
             }
-            label="EWI Demo"
+            label={userLabel}
             variant="outlined"
             size="small"
             sx={{
