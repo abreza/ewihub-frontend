@@ -11,7 +11,7 @@ import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useParams } from "next/navigation";
-import { useGetEmployeeDetailQuery } from "@/lib/redux/api/employeeApi";
+import { useEmployeeControllerFindOneQuery } from "@/lib/redux/api/generatedApi";
 import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
 import DetailRow from "@/components/molecules/DetailRow";
@@ -26,7 +26,7 @@ export default function EmployeeDetailPage() {
   const [timelineTryFilter, setTimelineTryFilter] = useState<"all" | "last">("all");
   const [timelineCourseFilter, setTimelineCourseFilter] = useState<string>("all");
 
-  const { data: rawEmployee, isLoading, error } = useGetEmployeeDetailQuery(employeeId, {
+  const { data: rawEmployee, isLoading, error } = useEmployeeControllerFindOneQuery({ id: employeeId }, {
     skip: !employeeId,
   });
 

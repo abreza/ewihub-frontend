@@ -10,7 +10,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { useGetEmployeesQuery } from "@/lib/redux/api/employeeApi";
+import { useEmployeeControllerFindAllQuery } from "@/lib/redux/api/generatedApi";
 import { toUIEmployees } from "@/data/employeeAdapter";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; border?: string }> = {
@@ -47,7 +47,7 @@ export default function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const { data: response, isLoading } = useGetEmployeesQuery({
+  const { data: response, isLoading } = useEmployeeControllerFindAllQuery({
     search: searchTerm || undefined,
     page,
     limit: pageSize,

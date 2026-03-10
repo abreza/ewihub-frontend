@@ -5,7 +5,7 @@ import type {
   SelfAssessmentCourseDataRo,
   ProgramStatsRo,
   CourseReportRowRo,
-} from "@/lib/redux/api/employeeApi";
+} from "@/lib/redux/api/generatedApi";
 
 export type UIStatus =
   | "Completed"
@@ -87,8 +87,8 @@ export interface UITraining {
   date: string;
   training: string;
   result: UIStatus;
-  startedDate: string | null;
-  completedDate: string | null;
+  startedDate: string | undefined;
+  completedDate: string | undefined;
 }
 
 export interface UIDemographic {
@@ -144,7 +144,7 @@ export interface UIEmployeeDetail {
   timeline: UITimeline[];
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null | undefined): string {
   return dateStr || "-";
 }
 
@@ -331,7 +331,7 @@ export function toUIProgramStats(stats: ProgramStatsRo): UIProgramStats {
   const oeCourse = stats.courses.find((c) => c.course === "Office Ergonomics");
   const saCourse = stats.courses.find((c) => c.course === "Self Assessment");
 
-  const saBreakdown = saCourse?.statusBreakdown || {};
+  const saBreakdown = (saCourse?.statusBreakdown || {}) as Record<string, number>;
 
   return {
     totalEmployees: stats.totalEmployees,

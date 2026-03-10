@@ -10,12 +10,12 @@ import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { useRouter } from "next/navigation";
-import { useGetProgramStatsQuery } from "@/lib/redux/api/employeeApi";
+import { useEmployeeControllerGetStatsQuery } from "@/lib/redux/api/generatedApi";
 import { toUIProgramStats } from "@/data/employeeAdapter";
 
 export default function HomePage() {
   const router = useRouter();
-  const { data: rawStats, isLoading, error } = useGetProgramStatsQuery();
+  const { data: rawStats, isLoading, error } = useEmployeeControllerGetStatsQuery();
 
   const stats = useMemo(
     () => (rawStats ? toUIProgramStats(rawStats) : null),

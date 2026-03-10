@@ -16,10 +16,10 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useRouter } from "next/navigation";
 import {
-  useGetCourseReportQuery,
-  useGetProgramStatsQuery,
-  useGetBodyAggregationQuery,
-} from "@/lib/redux/api/employeeApi";
+  useEmployeeControllerGetCourseReportQuery,
+  useEmployeeControllerGetStatsQuery,
+  useEmployeeControllerGetBodyAggregationQuery,
+} from "@/lib/redux/api/generatedApi";
 import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
 import BodyDiagram from "@/components/organisms/BodyDiagram";
 
@@ -88,10 +88,10 @@ export default function SelfAssessmentPage() {
   const [pageSize, setPageSize] = useState(5);
   const [discomfortView, setDiscomfortView] = useState<"count" | "average">("count");
 
-  const { data: rawStats } = useGetProgramStatsQuery();
+  const { data: rawStats } = useEmployeeControllerGetStatsQuery();
   const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
 
-  const { data: reportResponse, isLoading: isLoadingReport } = useGetCourseReportQuery({
+  const { data: reportResponse, isLoading: isLoadingReport } = useEmployeeControllerGetCourseReportQuery({
     course: "Self Assessment",
     search: searchTerm || undefined,
     status: FILTER_STATUS_MAP[activeFilter],
@@ -104,7 +104,7 @@ export default function SelfAssessmentPage() {
     [reportResponse]
   );
 
-  const { data: discomfortData } = useGetBodyAggregationQuery({
+  const { data: discomfortData } = useEmployeeControllerGetBodyAggregationQuery({
     course: "Self Assessment",
     dataPath: "bodyPartsDiscomfort",
   });
@@ -126,8 +126,8 @@ export default function SelfAssessmentPage() {
     : [];
 
   const bodyData = useMemo(() => {
-    if (!discomfortData) return {};
-    return discomfortView === "count" ? discomfortData.countData : discomfortData.avgData;
+    if (!discomfortData) return {} as Record<string, number>;
+    return (discomfortView === "count" ? discomfortData.countData : discomfortData.avgData) as Record<string, number>;
   }, [discomfortData, discomfortView]);
 
   const getPageNumbers = () => {

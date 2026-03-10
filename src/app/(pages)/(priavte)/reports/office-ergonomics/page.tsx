@@ -15,9 +15,9 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
 import {
-  useGetCourseReportQuery,
-  useGetProgramStatsQuery,
-} from "@/lib/redux/api/employeeApi";
+  useEmployeeControllerGetCourseReportQuery,
+  useEmployeeControllerGetStatsQuery,
+} from "@/lib/redux/api/generatedApi";
 import { toOEReportRow, toUIProgramStats, nameToSlug, type OEReportRow } from "@/data/employeeAdapter";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
@@ -70,10 +70,10 @@ export default function OfficeErgonomicsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const { data: rawStats } = useGetProgramStatsQuery();
+  const { data: rawStats } = useEmployeeControllerGetStatsQuery();
   const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
 
-  const { data: reportResponse, isLoading: isLoadingReport } = useGetCourseReportQuery({
+  const { data: reportResponse, isLoading: isLoadingReport } = useEmployeeControllerGetCourseReportQuery({
     course: "Office Ergonomics",
     search: searchTerm || undefined,
     status: FILTER_STATUS_MAP[activeFilter],
