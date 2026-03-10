@@ -9,7 +9,7 @@ import type { RootState } from "../store";
 import { logout } from "../slices/authSlice";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "/api",
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth?.token;
     if (token) {
