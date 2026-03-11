@@ -1,5 +1,10 @@
 import { emptyApi as api } from "./emptyApi";
-export const addTagTypes = ["Users", "Auth", "Employees"] as const;
+export const addTagTypes = [
+  "Users",
+  "Auth",
+  "Employees",
+  "Organizations",
+] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
     addTagTypes,
@@ -224,6 +229,125 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Employees"],
       }),
+      employeeControllerReceiveLmsData: build.mutation<
+        EmployeeControllerReceiveLmsDataApiResponse,
+        EmployeeControllerReceiveLmsDataApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/lms/receive`,
+          method: "POST",
+          body: queryArg.lmsPayloadDto,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+      organizationControllerCreate: build.mutation<
+        OrganizationControllerCreateApiResponse,
+        OrganizationControllerCreateApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations`,
+          method: "POST",
+          body: queryArg.createOrganizationDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerFindAll: build.query<
+        OrganizationControllerFindAllApiResponse,
+        OrganizationControllerFindAllApiArg
+      >({
+        query: () => ({ url: `/api/organizations` }),
+        providesTags: ["Organizations"],
+      }),
+      organizationControllerFindOne: build.query<
+        OrganizationControllerFindOneApiResponse,
+        OrganizationControllerFindOneApiArg
+      >({
+        query: (queryArg) => ({ url: `/api/organizations/${queryArg.id}` }),
+        providesTags: ["Organizations"],
+      }),
+      organizationControllerUpdate: build.mutation<
+        OrganizationControllerUpdateApiResponse,
+        OrganizationControllerUpdateApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}`,
+          method: "PATCH",
+          body: queryArg.updateOrganizationDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerRemove: build.mutation<
+        OrganizationControllerRemoveApiResponse,
+        OrganizationControllerRemoveApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerRegenerateApiKey: build.mutation<
+        OrganizationControllerRegenerateApiKeyApiResponse,
+        OrganizationControllerRegenerateApiKeyApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/regenerate-api-key`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerGetUsers: build.query<
+        OrganizationControllerGetUsersApiResponse,
+        OrganizationControllerGetUsersApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/users`,
+        }),
+        providesTags: ["Organizations"],
+      }),
+      organizationControllerAddUser: build.mutation<
+        OrganizationControllerAddUserApiResponse,
+        OrganizationControllerAddUserApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/users`,
+          method: "POST",
+          body: queryArg.addOrgUserDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerUpdateUser: build.mutation<
+        OrganizationControllerUpdateUserApiResponse,
+        OrganizationControllerUpdateUserApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/users/${queryArg.userId}`,
+          method: "PATCH",
+          body: queryArg.updateOrgUserDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerRemoveUser: build.mutation<
+        OrganizationControllerRemoveUserApiResponse,
+        OrganizationControllerRemoveUserApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/users/${queryArg.userId}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerSyncFromEwihub: build.mutation<
+        OrganizationControllerSyncFromEwihubApiResponse,
+        OrganizationControllerSyncFromEwihubApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/sync-ewihub`,
+          method: "POST",
+          body: queryArg.syncEwihubDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
     }),
     overrideExisting: false,
   });
@@ -349,6 +473,71 @@ export type EmployeeControllerRemoveTrainingApiArg = {
   id: string;
   trainingId: string;
 };
+export type EmployeeControllerReceiveLmsDataApiResponse =
+  /** status 200 Data received successfully */ {
+    success?: boolean;
+    message?: string;
+  };
+export type EmployeeControllerReceiveLmsDataApiArg = {
+  lmsPayloadDto: LmsPayloadDto;
+};
+export type OrganizationControllerCreateApiResponse =
+  /** status 201  */ OrganizationDetailRo;
+export type OrganizationControllerCreateApiArg = {
+  createOrganizationDto: CreateOrganizationDto;
+};
+export type OrganizationControllerFindAllApiResponse =
+  /** status 200  */ OrganizationListItemRo[];
+export type OrganizationControllerFindAllApiArg = void;
+export type OrganizationControllerFindOneApiResponse =
+  /** status 200  */ OrganizationDetailRo;
+export type OrganizationControllerFindOneApiArg = {
+  id: string;
+};
+export type OrganizationControllerUpdateApiResponse =
+  /** status 200  */ OrganizationDetailRo;
+export type OrganizationControllerUpdateApiArg = {
+  id: string;
+  updateOrganizationDto: UpdateOrganizationDto;
+};
+export type OrganizationControllerRemoveApiResponse = unknown;
+export type OrganizationControllerRemoveApiArg = {
+  id: string;
+};
+export type OrganizationControllerRegenerateApiKeyApiResponse =
+  /** status 200  */ OrganizationDetailRo;
+export type OrganizationControllerRegenerateApiKeyApiArg = {
+  id: string;
+};
+export type OrganizationControllerGetUsersApiResponse =
+  /** status 200  */ UserRo[];
+export type OrganizationControllerGetUsersApiArg = {
+  id: string;
+};
+export type OrganizationControllerAddUserApiResponse =
+  /** status 201  */ UserRo;
+export type OrganizationControllerAddUserApiArg = {
+  id: string;
+  addOrgUserDto: AddOrgUserDto;
+};
+export type OrganizationControllerUpdateUserApiResponse =
+  /** status 200  */ UserRo;
+export type OrganizationControllerUpdateUserApiArg = {
+  id: string;
+  userId: string;
+  updateOrgUserDto: UpdateOrgUserDto;
+};
+export type OrganizationControllerRemoveUserApiResponse = unknown;
+export type OrganizationControllerRemoveUserApiArg = {
+  id: string;
+  userId: string;
+};
+export type OrganizationControllerSyncFromEwihubApiResponse =
+  /** status 200  */ SyncResultRo;
+export type OrganizationControllerSyncFromEwihubApiArg = {
+  id: string;
+  syncEwihubDto: SyncEwihubDto;
+};
 export type UserRo = {
   /** User ID */
   id: string;
@@ -360,8 +549,10 @@ export type UserRo = {
   email: string;
   /** Username */
   username: string;
-  /** Whether the user is a super user */
-  isAdmin: boolean;
+  /** User role */
+  role: "superAdmin" | "orgUser";
+  /** Organization ID */
+  organization?: string;
   /** User creation timestamp */
   createdAt: string;
   /** User update timestamp */
@@ -378,16 +569,20 @@ export type CreateUserDto = {
   username: string;
   /** Password */
   password: string;
-  /** Whether the user is a super user */
-  isAdmin?: boolean;
+  /** User role */
+  role?: "superAdmin" | "orgUser";
+  /** Organization ID (required for orgUser role) */
+  organization?: string;
 };
 export type UpdateUserDto = {
   /** Username */
   username?: string;
   /** Password */
   password?: string;
-  /** Whether the user is a super user */
-  isAdmin?: boolean;
+  /** User role */
+  role?: "superAdmin" | "orgUser";
+  /** Organization ID */
+  organization?: string;
 };
 export type LoginRo = {
   /** JWT access token */
@@ -436,8 +631,10 @@ export type ProfileRo = {
   email: string;
   /** Username */
   username: string;
-  /** Whether the user is a super user */
-  isAdmin: boolean;
+  /** User role */
+  role: string;
+  /** Organization ID */
+  organization?: string;
   /** User creation timestamp */
   createdAt: string;
   /** User update timestamp */
@@ -555,6 +752,10 @@ export type EmployeeDetailRo = {
   email: string;
   /** Legacy profile URL */
   oldProfileUrl?: string;
+  /** Organization ID */
+  organization?: string;
+  /** Department name */
+  department?: string;
   /** All trainings */
   trainings: TrainingRo[];
   /** Creation timestamp */
@@ -752,6 +953,140 @@ export type UpdateTrainingDto = {
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
 };
+export type LmsPayloadDto = {
+  /** Learner identifier */
+  id: string;
+  /** Learner email */
+  email: string;
+  /** Learner full name */
+  name: string;
+  /** Department */
+  department: string;
+  /** Course slug */
+  course: string;
+  /** Training status */
+  status: "started" | "finished";
+  /** Organization API key */
+  apiKey: string;
+  /** Course-specific data payload (null for started, object for finished) */
+  data?: object;
+};
+export type OrganizationDetailRo = {
+  /** Organization ID */
+  id: string;
+  /** Organization name */
+  name: string;
+  /** Abbreviated name */
+  abbreviation: string;
+  /** Notes */
+  notes?: string;
+  /** Logo URL */
+  logo?: string;
+  /** API Key */
+  apiKey: string;
+  /** Enabled courses */
+  courses: string[];
+  /** Enable departments */
+  enableDepartments: boolean;
+  /** Is active */
+  active: boolean;
+  /** Organization users */
+  users: UserRo[];
+  /** Departments */
+  departments: string[];
+  /** Creation timestamp */
+  createdAt: string;
+  /** Update timestamp */
+  updatedAt: string;
+};
+export type CreateOrganizationDto = {
+  /** Organization full name */
+  name: string;
+  /** Abbreviated name */
+  abbreviation: string;
+  /** Optional notes */
+  notes?: string;
+  /** Logo URL or base64 */
+  logo?: string;
+  /** Enabled courses */
+  courses?: string[];
+  /** Enable department tracking */
+  enableDepartments?: boolean;
+  /** Whether organization is active */
+  active?: boolean;
+};
+export type OrganizationListItemRo = {
+  /** Organization ID */
+  id: string;
+  /** Organization name */
+  name: string;
+  /** Abbreviated name */
+  abbreviation: string;
+  /** Logo URL */
+  logo?: string;
+  /** API Key */
+  apiKey: string;
+  /** Enabled courses */
+  courses: string[];
+  /** Enable departments */
+  enableDepartments: boolean;
+  /** Is active */
+  active: boolean;
+};
+export type UpdateOrganizationDto = {
+  /** Organization full name */
+  name?: string;
+  /** Abbreviated name */
+  abbreviation?: string;
+  /** Optional notes */
+  notes?: string;
+  /** Logo URL or base64 */
+  logo?: string;
+  /** Enabled courses */
+  courses?: string[];
+  /** Enable department tracking */
+  enableDepartments?: boolean;
+  /** Whether organization is active */
+  active?: boolean;
+};
+export type AddOrgUserDto = {
+  /** First name */
+  firstName: string;
+  /** Last name */
+  lastName: string;
+  /** User email */
+  email: string;
+  /** Username */
+  username: string;
+  /** User password */
+  password: string;
+};
+export type UpdateOrgUserDto = {
+  /** Username */
+  username?: string;
+  /** User password */
+  password?: string;
+};
+export type SyncResultRo = {
+  /** Whether the sync completed */
+  success: boolean;
+  /** Human-readable summary */
+  message: string;
+  /** Number of profiles scraped */
+  totalScraped: number;
+  /** New employees created */
+  created: number;
+  /** Existing employees updated */
+  updated: number;
+  /** Per-employee errors (non-fatal) */
+  errors: string[];
+};
+export type SyncEwihubDto = {
+  /** EWI Hub login email (organization user credential) */
+  email: string;
+  /** EWI Hub login password */
+  password: string;
+};
 export const {
   useUserControllerCreateMutation,
   useUserControllerFindAllQuery,
@@ -782,4 +1117,19 @@ export const {
   useEmployeeControllerAddTrainingMutation,
   useEmployeeControllerUpdateTrainingMutation,
   useEmployeeControllerRemoveTrainingMutation,
+  useEmployeeControllerReceiveLmsDataMutation,
+  useOrganizationControllerCreateMutation,
+  useOrganizationControllerFindAllQuery,
+  useLazyOrganizationControllerFindAllQuery,
+  useOrganizationControllerFindOneQuery,
+  useLazyOrganizationControllerFindOneQuery,
+  useOrganizationControllerUpdateMutation,
+  useOrganizationControllerRemoveMutation,
+  useOrganizationControllerRegenerateApiKeyMutation,
+  useOrganizationControllerGetUsersQuery,
+  useLazyOrganizationControllerGetUsersQuery,
+  useOrganizationControllerAddUserMutation,
+  useOrganizationControllerUpdateUserMutation,
+  useOrganizationControllerRemoveUserMutation,
+  useOrganizationControllerSyncFromEwihubMutation,
 } = injectedRtkApi;

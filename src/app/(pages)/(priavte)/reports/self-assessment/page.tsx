@@ -21,7 +21,7 @@ import {
   useEmployeeControllerGetBodyAggregationQuery,
 } from "@/lib/redux/api/generatedApi";
 import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
-import BodyDiagram from "@/components/organisms/BodyDiagram";
+import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
   Pass: { bg: "#dcfce7", color: "#15803d" },
@@ -156,7 +156,6 @@ export default function SelfAssessmentPage() {
       </Box>
 
       <Grid container spacing={{ xs: 2, md: 3 }}>
-        {/* Donut chart */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -193,8 +192,6 @@ export default function SelfAssessmentPage() {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Body diagram */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Card>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -247,8 +244,6 @@ export default function SelfAssessmentPage() {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Insight cards */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={1.5} sx={{ height: "100%" }}>
             {insights.map((item, i) => (
@@ -274,8 +269,6 @@ export default function SelfAssessmentPage() {
             ))}
           </Grid>
         </Grid>
-
-        {/* Table */}
         <Grid size={{ xs: 12 }}>
           <Card>
             <Box sx={{

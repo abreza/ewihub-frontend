@@ -16,7 +16,7 @@ import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
-import BodyDiagram from "@/components/organisms/BodyDiagram";
+import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 import SelfAssessmentSection from "@/components/organisms/SelfAssessmentSection";
 
 export default function EmployeeDetailPage() {

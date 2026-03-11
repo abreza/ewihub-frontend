@@ -20,6 +20,7 @@ import {
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
+import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
@@ -62,6 +63,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const isActive = (path: string) => {
     if (path === "/") return pathname === "/";
     if (path === "/employees") return pathname.startsWith("/employees");
+    if (path === "/organizations") return pathname.startsWith("/organizations");
     return pathname === path;
   };
 
@@ -76,6 +78,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       ],
     },
     { label: "Employees", icon: <PeopleRoundedIcon />, path: "/employees" },
+    ...(user?.role === "superAdmin"
+      ? [{ label: "Organizations", icon: <BusinessRoundedIcon />, path: "/organizations" }]
+      : []),
   ];
 
   const activeColor = "#2563eb";

@@ -5,7 +5,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { UIEmployeeDetail } from "@/data/employeeAdapter";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
-import BodyDiagram from "@/components/organisms/BodyDiagram";
+import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
 const SelfAssessmentSection = ({ detail, resultLabel }: { detail: NonNullable<UIEmployeeDetail["selfAssessmentDetail"]>; resultLabel: string }) => (
   <Box sx={{ mt: 3 }}>
