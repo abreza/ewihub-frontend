@@ -54,12 +54,13 @@ export function Header({ onMenuToggle }: HeaderProps) {
     <AppBar
       position="fixed"
       sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: (theme) => theme.zIndex.drawer - 1,
         bgcolor: alpha("#fff", 0.85),
         backdropFilter: "blur(12px)",
         color: "text.primary",
         borderBottom: "1px solid",
         borderColor: "divider",
+        pl: 2
       }}
     >
       <Toolbar sx={{ minHeight: "56px !important" }}>

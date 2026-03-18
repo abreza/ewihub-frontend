@@ -94,31 +94,19 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const drawerContent = (
     <>
-      <Box sx={{ px: 2.5, py: 2.5, display: "flex", alignItems: "center", gap: 1.5 }}>
+      <Box sx={{ px: 2.5, py: 0.5, display: "flex", alignItems: "center" }}>
         <Box
+          component="img"
+          src="/logo.png"
+          alt="ewiHub logo"
           sx={{
-            width: 36,
-            height: 36,
-            borderRadius: "10px",
-            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            width: "100%",
+            maxWidth: 160,
+            height: "auto",
+            objectFit: "contain",
+            mx: 'auto'
           }}
-        >
-          <Typography sx={{ color: "#fff", fontWeight: 800, fontSize: "0.85rem", letterSpacing: "-0.02em" }}>
-            ewi
-          </Typography>
-        </Box>
-        <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: "1.15rem", color: "#f8fafc", letterSpacing: "-0.01em", lineHeight: 1.2 }}>
-            ewiHub
-          </Typography>
-          <Typography sx={{ fontSize: "0.65rem", color: "#64748b", fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-            Ergonomics Platform
-          </Typography>
-        </Box>
+        />
       </Box>
 
       <Divider sx={{ borderColor: alpha("#fff", 0.06), mx: 2 }} />
