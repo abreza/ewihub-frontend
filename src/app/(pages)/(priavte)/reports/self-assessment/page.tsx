@@ -1,3 +1,4 @@
+// src/app/(pages)/(priavte)/reports/self-assessment/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import {
   useEmployeeControllerGetCourseReportQuery,
   useEmployeeControllerGetStatsQuery,
   useEmployeeControllerGetBodyAggregationQuery,
+  useEmployeeControllerGetChartAggregationQuery,
 } from "@/lib/redux/api/generatedApi";
 import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
 import { STATUS_CONFIG, DEFAULT_STATUS_STYLE } from "@/constants";
@@ -25,7 +27,7 @@ import FilterButtons from "@/components/atoms/FilterButtons";
 import SearchField from "@/components/atoms/SearchField";
 import InsightCard from "@/components/molecules/InsightCard";
 import PaginationBar from "@/components/molecules/PaginationBar";
-import DonutChart from "@/components/organisms/DonutChart";
+import TabbedDonutChart, { ChartTab } from "@/components/organisms/TabbedDonutChart";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
 const FILTER_OPTIONS = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
@@ -36,6 +38,59 @@ const FILTER_STATUS_MAP: Record<string, string | undefined> = {
   Assessment: "assessment",
   "In Progress": "pending",
 };
+
+// Colors for pie chart segments (matches original EWI Hub)
+const CHART_COLORS = [
+  "#f56954", "#00a65a", "#f39c12", "#00c0ef", "#3c8dbc",
+  "#d2d6de", "#605ca8", "#ff851b", "#39cccc", "#001f3f",
+  "#D81B60", "#e83e8c",
+];
+
+// Truncate long labels for better chart readability
+function truncateLabel(label: string, maxLen = 50): string {
+  if (label.length <= maxLen) return label;
+  return label.substring(0, maxLen - 3) + "...";
+}
+
+// Process chart data: take top N items and group rest into "Other"
+function processChartData(
+  data: Record<string, number>,
+  maxItems = 5,
+): { labels: string[]; values: number[]; colors: string[] } {
+  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const labels: string[] = [];
+  const values: number[] = [];
+  let otherCount = 0;
+
+  entries.forEach(([key, val], i) => {
+    if (i < maxItems) {
+      labels.push(truncateLabel(key));
+      values.push(val);
+    } else {
+      otherCount += val;
+    }
+  });
+
+  if (otherCount > 0) {
+    labels.push("Other");
+    values.push(otherCount);
+  }
+
+  const colors = CHART_COLORS.slice(0, labels.length);
+  return { labels, values, colors };
+}
+
+function recordToSegments(
+  data: Record<string, number>,
+  maxItems = 5,
+): { value: number; color: string; label: string }[] {
+  const { labels, values, colors } = processChartData(data, maxItems);
+  return labels.map((label, i) => ({
+    label,
+    value: values[i],
+    color: colors[i],
+  }));
+}
 
 export default function SelfAssessmentPage() {
   const router = useRouter();
@@ -72,6 +127,11 @@ export default function SelfAssessmentPage() {
     dataPath: "bodyPartsDiscomfort",
   });
 
+  const { data: chartAggData, isLoading: isLoadingChartAgg } =
+    useEmployeeControllerGetChartAggregationQuery({
+      course: "Self Assessment",
+    });
+
   const meta = reportResponse?.meta;
   const totalPages = meta?.totalPages ?? 1;
   const currentPage = meta?.page ?? page;
@@ -86,24 +146,83 @@ export default function SelfAssessmentPage() {
     ]
     : [];
 
-  const donutSegments = stats
-    ? [
-      { value: stats.sa.pass, color: "#16a34a", label: "Pass" },
-      { value: stats.sa.action, color: "#f59e0b", label: "Action" },
-      { value: stats.sa.assessment, color: "#ef4444", label: "Assessment" },
-      { value: stats.sa.inProgress, color: "#94a3b8", label: "In Progress" },
-    ]
-    : [];
+  const resultSegments = useMemo(
+    () => stats
+      ? [
+        { value: stats.sa.pass, color: "#6AB187", label: "Pass" },
+        { value: stats.sa.action, color: "#DBAE58", label: "Action Needed" },
+        { value: stats.sa.assessment, color: "#AC3E31", label: "Assessment" },
+      ]
+      : [],
+    [stats],
+  );
 
-  const passPct = stats
-    ? (stats.sa.pass + stats.sa.action + stats.sa.assessment + stats.sa.inProgress) > 0
-      ? Math.round(
-        (stats.sa.pass /
-          (stats.sa.pass + stats.sa.action + stats.sa.assessment + stats.sa.inProgress)) *
-        100,
-      )
-      : 0
+  const totalResult = resultSegments.reduce((sum, s) => sum + s.value, 0);
+  const passPct = totalResult > 0
+    ? Math.round((resultSegments[0]?.value / totalResult) * 100)
     : 0;
+
+  const issuesSegments = useMemo(
+    () => (chartAggData?.issues ? recordToSegments(chartAggData.issues, 5) : []),
+    [chartAggData],
+  );
+  const issuesTotal = issuesSegments.reduce((sum, s) => sum + s.value, 0);
+
+  const actionsSegments = useMemo(
+    () => (chartAggData?.actions ? recordToSegments(chartAggData.actions, 5) : []),
+    [chartAggData],
+  );
+  const actionsTotal = actionsSegments.reduce((sum, s) => sum + s.value, 0);
+
+  const equipmentSegments = useMemo(
+    () => (chartAggData?.equipment ? recordToSegments(chartAggData.equipment, 5) : []),
+    [chartAggData],
+  );
+  const equipmentTotal = equipmentSegments.reduce((sum, s) => sum + s.value, 0);
+
+  const chartTabs: ChartTab[] = useMemo(() => {
+    const tabs: ChartTab[] = [
+      {
+        key: "result",
+        label: "Result",
+        segments: resultSegments,
+        centerValue: `${passPct}%`,
+        centerLabel: "Pass Rate",
+        isLoading: !stats,
+      },
+      {
+        key: "issues",
+        label: "Issues",
+        segments: issuesSegments,
+        centerValue: String(issuesTotal),
+        centerLabel: "Total Issues",
+        isLoading: isLoadingChartAgg,
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        segments: actionsSegments,
+        centerValue: String(actionsTotal),
+        centerLabel: "Total Actions",
+        isLoading: isLoadingChartAgg,
+      },
+      {
+        key: "equipment",
+        label: "Equipment",
+        segments: equipmentSegments,
+        centerValue: String(equipmentTotal),
+        centerLabel: "Total Needs",
+        isLoading: isLoadingChartAgg,
+      },
+    ];
+    return tabs;
+  }, [
+    stats, resultSegments, passPct,
+    issuesSegments, issuesTotal,
+    actionsSegments, actionsTotal,
+    equipmentSegments, equipmentTotal,
+    isLoadingChartAgg,
+  ]);
 
   const bodyData = useMemo(() => {
     if (!discomfortData) return {} as Record<string, number>;
@@ -121,18 +240,11 @@ export default function SelfAssessmentPage() {
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              <Typography variant="subtitle1" sx={{ mb: 1 }}>Result Summary</Typography>
-              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: { xs: 240, md: 280 } }}>
-                {stats ? (
-                  <DonutChart
-                    segments={donutSegments}
-                    centerValue={`${passPct}%`}
-                    centerLabel="Pass Rate"
-                  />
-                ) : (
-                  <CircularProgress size={28} />
-                )}
-              </Box>
+              <TabbedDonutChart
+                title="Result Summary"
+                tabs={chartTabs}
+                defaultTab="result"
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -168,7 +280,6 @@ export default function SelfAssessmentPage() {
             </CardContent>
           </Card>
         </Grid>
-
         <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={1.5} sx={{ height: "100%" }}>
             {insights.map((item, i) => (

@@ -173,6 +173,15 @@ const injectedRtkApi = api
         }),
         providesTags: ["Employees"],
       }),
+      employeeControllerGetChartAggregation: build.query<
+        EmployeeControllerGetChartAggregationApiResponse,
+        EmployeeControllerGetChartAggregationApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/reports/${queryArg.course}/chart-aggregation`,
+        }),
+        providesTags: ["Employees"],
+      }),
       employeeControllerFindOne: build.query<
         EmployeeControllerFindOneApiResponse,
         EmployeeControllerFindOneApiArg
@@ -341,6 +350,16 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Organizations"],
       }),
+      organizationControllerSyncFromEwihubSuperAdmin: build.mutation<
+        OrganizationControllerSyncFromEwihubSuperAdminApiResponse,
+        OrganizationControllerSyncFromEwihubSuperAdminApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/${queryArg.id}/sync-ewihub-super-admin`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
       organizationControllerSyncFromEwihub: build.mutation<
         OrganizationControllerSyncFromEwihubApiResponse,
         OrganizationControllerSyncFromEwihubApiArg
@@ -349,6 +368,17 @@ const injectedRtkApi = api
           url: `/api/organizations/${queryArg.id}/sync-ewihub`,
           method: "POST",
           body: queryArg.syncEwihubDto,
+        }),
+        invalidatesTags: ["Organizations"],
+      }),
+      organizationControllerSeedFromFile: build.mutation<
+        OrganizationControllerSeedFromFileApiResponse,
+        OrganizationControllerSeedFromFileApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/organizations/seed`,
+          method: "POST",
+          body: queryArg.body,
         }),
         invalidatesTags: ["Organizations"],
       }),
@@ -416,7 +446,9 @@ export type EmployeeControllerFindAllApiArg = {
   course?: string;
   /** Filter by training status */
   status?: string;
+  /** Sort field */
   sortBy?: "name" | "email" | "createdAt" | "updatedAt";
+  /** Sort direction */
   sortOrder?: "asc" | "desc";
   /** Page number */
   page?: number;
@@ -434,7 +466,9 @@ export type EmployeeControllerGetCourseReportApiArg = {
   search?: string;
   /** Filter by training status */
   status?: string;
+  /** Sort field */
   sortBy?: "name" | "email" | "createdAt" | "updatedAt";
+  /** Sort direction */
   sortOrder?: "asc" | "desc";
   /** Page number */
   page?: number;
@@ -447,6 +481,11 @@ export type EmployeeControllerGetBodyAggregationApiArg = {
   course: string;
   /** Dot-notated path within courseData */
   dataPath?: string;
+};
+export type EmployeeControllerGetChartAggregationApiResponse =
+  /** status 200  */ ChartAggregationRo;
+export type EmployeeControllerGetChartAggregationApiArg = {
+  course: string;
 };
 export type EmployeeControllerFindOneApiResponse =
   /** status 200  */ EmployeeDetailRo;
@@ -540,11 +579,24 @@ export type OrganizationControllerRemoveUserApiArg = {
   id: string;
   userId: string;
 };
+export type OrganizationControllerSyncFromEwihubSuperAdminApiResponse =
+  /** status 200  */ SyncResultRo;
+export type OrganizationControllerSyncFromEwihubSuperAdminApiArg = {
+  id: string;
+};
 export type OrganizationControllerSyncFromEwihubApiResponse =
   /** status 200  */ SyncResultRo;
 export type OrganizationControllerSyncFromEwihubApiArg = {
   id: string;
   syncEwihubDto: SyncEwihubDto;
+};
+export type OrganizationControllerSeedFromFileApiResponse =
+  /** status 200  */ SeedResultRo;
+export type OrganizationControllerSeedFromFileApiArg = {
+  /** JSON file containing an array of organization seed objects */
+  body: {
+    file: Blob;
+  };
 };
 export type UserRo = {
   /** User ID */
@@ -862,6 +914,16 @@ export type DiscomfortSummaryRo = {
   /** Detailed aggregation per body part */
   details: BodyPartAggregationRo[];
 };
+export type ChartAggregationRo = {
+  /** Aggregated result counts */
+  result: Record<string, number>;
+  /** Aggregated issue counts across all completed trainings */
+  issues: Record<string, number>;
+  /** Aggregated action item counts across all completed trainings */
+  actions: Record<string, number>;
+  /** Aggregated equipment need counts across all completed trainings */
+  equipment: Record<string, number>;
+};
 export type UpdateEmployeeDto = {
   /** Employee full name */
   name?: string;
@@ -1095,6 +1157,14 @@ export type SyncEwihubDto = {
   /** EWI Hub login password */
   password: string;
 };
+export type SeedResultRo = {
+  /** Number of organizations created */
+  organizationsCreated: number;
+  /** Number of users created */
+  usersCreated: number;
+  /** Non-fatal errors encountered */
+  errors: string[];
+};
 export const {
   useUserControllerCreateMutation,
   useUserControllerFindAllQuery,
@@ -1118,6 +1188,8 @@ export const {
   useLazyEmployeeControllerGetCourseReportQuery,
   useEmployeeControllerGetBodyAggregationQuery,
   useLazyEmployeeControllerGetBodyAggregationQuery,
+  useEmployeeControllerGetChartAggregationQuery,
+  useLazyEmployeeControllerGetChartAggregationQuery,
   useEmployeeControllerFindOneQuery,
   useLazyEmployeeControllerFindOneQuery,
   useEmployeeControllerUpdateMutation,
@@ -1139,5 +1211,7 @@ export const {
   useOrganizationControllerAddUserMutation,
   useOrganizationControllerUpdateUserMutation,
   useOrganizationControllerRemoveUserMutation,
+  useOrganizationControllerSyncFromEwihubSuperAdminMutation,
   useOrganizationControllerSyncFromEwihubMutation,
+  useOrganizationControllerSeedFromFileMutation,
 } = injectedRtkApi;
