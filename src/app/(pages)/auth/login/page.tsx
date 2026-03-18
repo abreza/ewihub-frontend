@@ -10,7 +10,6 @@ import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthControllerLoginMutation } from "@/lib/redux/api/generatedApi";
 import { useAppDispatch } from "@/lib/redux/hooks";
@@ -66,13 +65,11 @@ export default function LoginPage() {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Background pattern */}
       <Box sx={{
         position: "absolute", inset: 0, opacity: 0.03,
         backgroundImage: "radial-gradient(circle at 25px 25px, white 1px, transparent 0)",
         backgroundSize: "50px 50px",
       }} />
-      {/* Gradient blobs */}
       <Box sx={{
         position: "absolute", width: 600, height: 600, borderRadius: "50%",
         background: "radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)",
@@ -94,7 +91,6 @@ export default function LoginPage() {
         zIndex: 1,
       }}>
         <CardContent sx={{ p: 4 }}>
-          {/* Logo */}
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 4 }}>
             <Box sx={{
               width: 52, height: 52, borderRadius: "14px",
@@ -181,18 +177,6 @@ export default function LoginPage() {
                 </Box>
               )}
             </Button>
-
-            <Box sx={{ mt: 3, textAlign: "center" }}>
-              <Typography variant="body2" color="text.secondary">
-                Don&apos;t have an account?{" "}
-                <Typography
-                  component={Link} href="/auth/signup" variant="body2"
-                  sx={{ color: "primary.main", fontWeight: 600, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
-                >
-                  Create account
-                </Typography>
-              </Typography>
-            </Box>
           </Box>
         </CardContent>
       </Card>

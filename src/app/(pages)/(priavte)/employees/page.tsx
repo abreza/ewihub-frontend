@@ -3,7 +3,7 @@
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Paper, Chip, Button, TextField, Typography, InputAdornment,
-  alpha, Avatar, Select, MenuItem, CircularProgress,
+  alpha, Avatar, Select, MenuItem, CircularProgress, TableSortLabel,
 } from "@mui/material";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -41,14 +41,20 @@ const StatusChip = ({ status }: { status: string }) => {
   );
 };
 
+type SortableField = "name" | "email" | "createdAt" | "updatedAt";
+
 export default function EmployeesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [sortBy, setSortBy] = useState<SortableField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const { data: response, isLoading } = useEmployeeControllerFindAllQuery({
     search: searchTerm || undefined,
+    sortBy,
+    sortOrder,
     page,
     limit: pageSize,
   });
@@ -62,6 +68,16 @@ export default function EmployeesPage() {
   const totalPages = meta?.totalPages ?? 1;
   const currentPage = meta?.page ?? page;
   const totalCount = meta?.total ?? 0;
+
+  const handleSort = (field: SortableField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === "name" || field === "email" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
 
   const getInitials = (name: string) =>
     name.split(" ").map((w) => w[0]).join("").toUpperCase();
@@ -144,7 +160,15 @@ export default function EmployeesPage() {
             <Table sx={{ minWidth: 500 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ width: { xs: "40%", md: "35%" } }}>Employee</TableCell>
+                  <TableCell sx={{ width: { xs: "40%", md: "35%" } }}>
+                    <TableSortLabel
+                      active={sortBy === "name"}
+                      direction={sortBy === "name" ? sortOrder : "asc"}
+                      onClick={() => handleSort("name")}
+                    >
+                      Employee
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>Office Ergonomics</TableCell>
                   <TableCell>Self Assessment</TableCell>
                 </TableRow>

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Grid, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Chip, Button, TextField,
-  alpha, InputAdornment, Select, MenuItem, CircularProgress,
+  alpha, InputAdornment, Select, MenuItem, CircularProgress, TableSortLabel,
 } from "@mui/material";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -63,12 +63,16 @@ const DonutChart = ({ completed, inProgress }: { completed: number; inProgress: 
   );
 };
 
+type SortableField = "name" | "email" | "createdAt" | "updatedAt";
+
 export default function OfficeErgonomicsPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<"All" | "Completed" | "In Progress">("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [sortBy, setSortBy] = useState<SortableField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const { data: rawStats } = useEmployeeControllerGetStatsQuery();
   const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
@@ -77,6 +81,8 @@ export default function OfficeErgonomicsPage() {
     course: "Office Ergonomics",
     search: searchTerm || undefined,
     status: FILTER_STATUS_MAP[activeFilter],
+    sortBy,
+    sortOrder,
     page,
     limit: pageSize,
   });
@@ -90,6 +96,16 @@ export default function OfficeErgonomicsPage() {
   const totalPages = meta?.totalPages ?? 1;
   const currentPage = meta?.page ?? page;
   const totalEntries = meta?.total ?? 0;
+
+  const handleSort = (field: SortableField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === "name" || field === "email" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
 
   const insights = stats
     ? [
@@ -216,9 +232,33 @@ export default function OfficeErgonomicsPage() {
                 <Table size="small" sx={{ minWidth: 500 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Started</TableCell>
-                      <TableCell>Completed</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "name"}
+                          direction={sortBy === "name" ? sortOrder : "asc"}
+                          onClick={() => handleSort("name")}
+                        >
+                          Name
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "createdAt"}
+                          direction={sortBy === "createdAt" ? sortOrder : "desc"}
+                          onClick={() => handleSort("createdAt")}
+                        >
+                          Started
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "updatedAt"}
+                          direction={sortBy === "updatedAt" ? sortOrder : "desc"}
+                          onClick={() => handleSort("updatedAt")}
+                        >
+                          Completed
+                        </TableSortLabel>
+                      </TableCell>
                       <TableCell>Result</TableCell>
                     </TableRow>
                   </TableHead>

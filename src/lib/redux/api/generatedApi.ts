@@ -129,6 +129,8 @@ const injectedRtkApi = api
             search: queryArg.search,
             course: queryArg.course,
             status: queryArg.status,
+            sortBy: queryArg.sortBy,
+            sortOrder: queryArg.sortOrder,
             page: queryArg.page,
             limit: queryArg.limit,
           },
@@ -151,6 +153,8 @@ const injectedRtkApi = api
           params: {
             search: queryArg.search,
             status: queryArg.status,
+            sortBy: queryArg.sortBy,
+            sortOrder: queryArg.sortOrder,
             page: queryArg.page,
             limit: queryArg.limit,
           },
@@ -412,6 +416,8 @@ export type EmployeeControllerFindAllApiArg = {
   course?: string;
   /** Filter by training status */
   status?: string;
+  sortBy?: "name" | "email" | "createdAt" | "updatedAt";
+  sortOrder?: "asc" | "desc";
   /** Page number */
   page?: number;
   /** Items per page */
@@ -428,6 +434,8 @@ export type EmployeeControllerGetCourseReportApiArg = {
   search?: string;
   /** Filter by training status */
   status?: string;
+  sortBy?: "name" | "email" | "createdAt" | "updatedAt";
+  sortOrder?: "asc" | "desc";
   /** Page number */
   page?: number;
   /** Items per page */
@@ -475,9 +483,9 @@ export type EmployeeControllerRemoveTrainingApiArg = {
 };
 export type EmployeeControllerReceiveLmsDataApiResponse =
   /** status 200 Data received successfully */ {
-    success?: boolean;
-    message?: string;
-  };
+  success?: boolean;
+  message?: string;
+};
 export type EmployeeControllerReceiveLmsDataApiArg = {
   lmsPayloadDto: LmsPayloadDto;
 };
@@ -688,33 +696,33 @@ export type IssuesRo = {
 export type BodyPartDiscomfortRo = {
   /** Body part key */
   bodyPart:
-    | "upperBack"
-    | "midBack"
-    | "lowerBack"
-    | "buttocks"
-    | "head"
-    | "neck"
-    | "eyes"
-    | "leftShoulder"
-    | "rightShoulder"
-    | "leftUpperArm"
-    | "rightUpperArm"
-    | "leftElbow"
-    | "rightElbow"
-    | "leftLowerArm"
-    | "rightLowerArm"
-    | "leftWrist"
-    | "rightWrist"
-    | "leftHand"
-    | "rightHand"
-    | "leftThigh"
-    | "rightThigh"
-    | "leftKnee"
-    | "rightKnee"
-    | "leftLowerLeg"
-    | "rightLowerLeg"
-    | "leftFootOrAnkle"
-    | "rightFootOrAnkle";
+  | "upperBack"
+  | "midBack"
+  | "lowerBack"
+  | "buttocks"
+  | "head"
+  | "neck"
+  | "eyes"
+  | "leftShoulder"
+  | "rightShoulder"
+  | "leftUpperArm"
+  | "rightUpperArm"
+  | "leftElbow"
+  | "rightElbow"
+  | "leftLowerArm"
+  | "rightLowerArm"
+  | "leftWrist"
+  | "rightWrist"
+  | "leftHand"
+  | "rightHand"
+  | "leftThigh"
+  | "rightThigh"
+  | "leftKnee"
+  | "rightKnee"
+  | "leftLowerLeg"
+  | "rightLowerLeg"
+  | "leftFootOrAnkle"
+  | "rightFootOrAnkle";
   /** Non-zero severity level */
   severity: number;
 };
@@ -890,33 +898,33 @@ export type IssuesDto = {
 export type BodyPartDiscomfortDto = {
   /** Body part key */
   bodyPart:
-    | "upperBack"
-    | "midBack"
-    | "lowerBack"
-    | "buttocks"
-    | "head"
-    | "neck"
-    | "eyes"
-    | "leftShoulder"
-    | "rightShoulder"
-    | "leftUpperArm"
-    | "rightUpperArm"
-    | "leftElbow"
-    | "rightElbow"
-    | "leftLowerArm"
-    | "rightLowerArm"
-    | "leftWrist"
-    | "rightWrist"
-    | "leftHand"
-    | "rightHand"
-    | "leftThigh"
-    | "rightThigh"
-    | "leftKnee"
-    | "rightKnee"
-    | "leftLowerLeg"
-    | "rightLowerLeg"
-    | "leftFootOrAnkle"
-    | "rightFootOrAnkle";
+  | "upperBack"
+  | "midBack"
+  | "lowerBack"
+  | "buttocks"
+  | "head"
+  | "neck"
+  | "eyes"
+  | "leftShoulder"
+  | "rightShoulder"
+  | "leftUpperArm"
+  | "rightUpperArm"
+  | "leftElbow"
+  | "rightElbow"
+  | "leftLowerArm"
+  | "rightLowerArm"
+  | "leftWrist"
+  | "rightWrist"
+  | "leftHand"
+  | "rightHand"
+  | "leftThigh"
+  | "rightThigh"
+  | "leftKnee"
+  | "rightKnee"
+  | "leftLowerLeg"
+  | "rightLowerLeg"
+  | "leftFootOrAnkle"
+  | "rightFootOrAnkle";
   /** Non-zero severity level */
   severity: number;
 };

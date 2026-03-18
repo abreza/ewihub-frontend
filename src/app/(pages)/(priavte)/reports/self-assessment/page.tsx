@@ -5,6 +5,7 @@ import {
   Box, Card, CardContent, Grid, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Paper, Chip, Button, TextField,
   alpha, InputAdornment, Tooltip, Select, MenuItem, CircularProgress,
+  TableSortLabel,
 } from "@mui/material";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -80,12 +81,16 @@ const DonutChart = ({
   );
 };
 
+type SortableField = "name" | "email" | "createdAt" | "updatedAt";
+
 export default function SelfAssessmentPage() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [sortBy, setSortBy] = useState<SortableField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [discomfortView, setDiscomfortView] = useState<"count" | "average">("count");
 
   const { data: rawStats } = useEmployeeControllerGetStatsQuery();
@@ -95,6 +100,8 @@ export default function SelfAssessmentPage() {
     course: "Self Assessment",
     search: searchTerm || undefined,
     status: FILTER_STATUS_MAP[activeFilter],
+    sortBy,
+    sortOrder,
     page,
     limit: pageSize,
   });
@@ -115,6 +122,16 @@ export default function SelfAssessmentPage() {
   const totalEntries = meta?.total ?? 0;
 
   const filters = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
+
+  const handleSort = (field: SortableField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === "name" || field === "email" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
 
   const insights = stats
     ? [
@@ -307,9 +324,33 @@ export default function SelfAssessmentPage() {
                 <Table size="small" sx={{ minWidth: 580 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Started</TableCell>
-                      <TableCell>Completed</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "name"}
+                          direction={sortBy === "name" ? sortOrder : "asc"}
+                          onClick={() => handleSort("name")}
+                        >
+                          Name
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "createdAt"}
+                          direction={sortBy === "createdAt" ? sortOrder : "desc"}
+                          onClick={() => handleSort("createdAt")}
+                        >
+                          Started
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "updatedAt"}
+                          direction={sortBy === "updatedAt" ? sortOrder : "desc"}
+                          onClick={() => handleSort("updatedAt")}
+                        >
+                          Completed
+                        </TableSortLabel>
+                      </TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Result</TableCell>
                     </TableRow>
