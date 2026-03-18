@@ -3,36 +3,43 @@
 import { useState, useMemo } from "react";
 import {
   Box, Card, Chip, Typography, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Paper, Avatar, Button, TextField,
-  alpha, Tabs, Tab, InputAdornment, CircularProgress
+  TableHead, TableRow, Paper, Avatar, Tabs, Tab, alpha, CircularProgress,
 } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { useParams } from "next/navigation";
 import { useEmployeeControllerFindOneQuery } from "@/lib/redux/api/generatedApi";
 import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
+import SearchField from "@/components/atoms/SearchField";
+import FilterButtons from "@/components/atoms/FilterButtons";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 import SelfAssessmentSection from "@/components/organisms/SelfAssessmentSection";
 
+const COURSE_FILTERS = [
+  { key: "all", label: "All Courses" },
+  { key: "self-assessment", label: "Self Assessment" },
+  { key: "office-ergonomics", label: "Office Ergonomics" },
+];
+
 export default function EmployeeDetailPage() {
   const params = useParams();
   const employeeId = params?.id as string;
   const [activeTab, setActiveTab] = useState(0);
-  const [timelineTryFilter, setTimelineTryFilter] = useState<"all" | "last">("all");
-  const [timelineCourseFilter, setTimelineCourseFilter] = useState<string>("all");
+  const [timelineTryFilter, setTimelineTryFilter] = useState("all");
+  const [timelineCourseFilter, setTimelineCourseFilter] = useState("all");
 
-  const { data: rawEmployee, isLoading, error } = useEmployeeControllerFindOneQuery({ id: employeeId }, {
-    skip: !employeeId,
-  });
+  const { data: rawEmployee, isLoading, error } = useEmployeeControllerFindOneQuery(
+    { id: employeeId },
+    { skip: !employeeId },
+  );
 
   const employee = useMemo(
     () => (rawEmployee ? toUIEmployeeDetail(rawEmployee) : null),
-    [rawEmployee]
+    [rawEmployee],
   );
 
   if (isLoading) {
@@ -62,7 +69,6 @@ export default function EmployeeDetailPage() {
         <Box sx={{ pt: 4, pb: 6, px: { xs: 2, md: 4 }, position: "relative" }}>
           <Box sx={{ position: "absolute", inset: 0, opacity: 0.03, backgroundSize: "50px 50px" }} />
         </Box>
-
         <Box sx={{ px: { xs: 2, md: 4 }, pb: 3, mt: -5, position: "relative" }}>
           <Box sx={{ display: "flex", alignItems: { xs: "flex-start", sm: "flex-end" }, gap: 2.5, flexDirection: { xs: "column", sm: "row" } }}>
             <Avatar
@@ -76,7 +82,9 @@ export default function EmployeeDetailPage() {
               {initials}
             </Avatar>
             <Box sx={{ pb: 0.5, flex: 1, minWidth: 0 }}>
-              <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: "1.1rem", sm: "1.5rem" } }}>{employee.name}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: "1.1rem", sm: "1.5rem" } }}>
+                {employee.name}
+              </Typography>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
                 <EmailRoundedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
                 <Typography variant="body2" color="text.secondary" noWrap>{employee.email}</Typography>
@@ -84,22 +92,17 @@ export default function EmployeeDetailPage() {
             </Box>
             <Box sx={{ display: "flex", gap: 2, pb: 0.5, flexWrap: "wrap" }}>
               <Box sx={{ textAlign: "center" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                  Office Ergonomics
-                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>Office Ergonomics</Typography>
                 <StatusChip status={employee.officeErgonomics} />
               </Box>
               <Box sx={{ textAlign: "center" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                  Self Assessment
-                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>Self Assessment</Typography>
                 <StatusChip status={employee.selfAssessment} />
               </Box>
             </Box>
           </Box>
         </Box>
       </Card>
-
       <Card>
         <Box sx={{ borderBottom: "1px solid", borderColor: "divider" }}>
           <Tabs
@@ -113,8 +116,7 @@ export default function EmployeeDetailPage() {
               "& .MuiTab-root": {
                 textTransform: "none", fontWeight: 600, fontSize: "0.85rem",
                 minHeight: 48, color: "text.secondary",
-                minWidth: { xs: "auto", sm: 90 },
-                px: { xs: 1.5, sm: 2 },
+                minWidth: { xs: "auto", sm: 90 }, px: { xs: 1.5, sm: 2 },
                 "&.Mui-selected": { color: "primary.main" },
               },
               "& .MuiTabs-indicator": { height: 2.5, borderRadius: "2px 2px 0 0" },
@@ -155,15 +157,11 @@ export default function EmployeeDetailPage() {
               )}
             </Box>
           )}
-
           {activeTab === 1 && (
             <Box>
               <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
                 <Typography variant="h6" sx={{ fontSize: "1rem" }}>Training History</Typography>
-                <TextField
-                  size="small" placeholder="Search..." variant="outlined" sx={{ width: { xs: "100%", sm: 220 } }}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: "1rem", color: "text.secondary" }} /></InputAdornment> }}
-                />
+                <SearchField value="" onChange={() => { }} />
               </Box>
               <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: "10px", overflow: "auto" }}>
                 <Table size="small" sx={{ minWidth: 500 }}>
@@ -194,58 +192,26 @@ export default function EmployeeDetailPage() {
               </Box>
             </Box>
           )}
-
           {activeTab === 2 && (
             <Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap", gap: 1.5 }}>
-                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                  {(["all", "last"] as const).map((f) => (
-                    <Button key={f} size="small" variant="contained"
-                      onClick={() => setTimelineTryFilter(f)}
-                      sx={{
-                        bgcolor: timelineTryFilter === f ? "primary.main" : alpha("#64748b", 0.1),
-                        color: timelineTryFilter === f ? "white" : "text.secondary",
-                        "&:hover": { bgcolor: timelineTryFilter === f ? "primary.dark" : alpha("#64748b", 0.15) },
-                      }}
-                    >
-                      {f === "all" ? "All Tries" : "Last Try"}
-                    </Button>
-                  ))}
-                </Box>
-                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                  {[
-                    { key: "all", label: "All Courses" },
-                    { key: "self-assessment", label: "Self Assessment" },
-                    { key: "office-ergonomics", label: "Office Ergonomics" },
-                  ].map((f) => (
-                    <Button key={f.key} size="small" variant="contained"
-                      onClick={() => setTimelineCourseFilter(f.key)}
-                      sx={{
-                        bgcolor: timelineCourseFilter === f.key ? "primary.main" : alpha("#64748b", 0.1),
-                        color: timelineCourseFilter === f.key ? "white" : "text.secondary",
-                        "&:hover": { bgcolor: timelineCourseFilter === f.key ? "primary.dark" : alpha("#64748b", 0.15) },
-                        fontSize: { xs: "0.7rem", sm: "0.825rem" },
-                      }}
-                    >
-                      {f.label}
-                    </Button>
-                  ))}
-                </Box>
+                <FilterButtons
+                  options={["all", "last"]}
+                  active={timelineTryFilter}
+                  onChange={setTimelineTryFilter}
+                />
+                <FilterButtons
+                  options={COURSE_FILTERS.map((f) => f.key)}
+                  active={timelineCourseFilter}
+                  onChange={setTimelineCourseFilter}
+                  compact
+                />
               </Box>
 
               {employee.timeline.map((day, di) => (
                 <Box key={di}>
-                  <Chip
-                    label={day.date}
-                    size="small"
-                    sx={{
-                      bgcolor: alpha("#2563eb", 0.1),
-                      color: "#2563eb",
-                      borderRadius: "6px",
-                      fontWeight: 600,
-                      mb: 2,
-                      fontSize: "0.75rem",
-                    }}
+                  <Chip label={day.date} size="small"
+                    sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", borderRadius: "6px", fontWeight: 600, mb: 2, fontSize: "0.75rem" }}
                   />
 
                   {day.entries
@@ -258,11 +224,7 @@ export default function EmployeeDetailPage() {
                     .map((entry, ei) => (
                       <Box key={ei} sx={{ display: "flex", gap: { xs: 1.5, sm: 2 }, mb: 3, ml: { xs: 0, sm: 1 } }}>
                         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                          <Avatar sx={{
-                            bgcolor: alpha("#2563eb", 0.1),
-                            color: "#2563eb",
-                            width: 32, height: 32,
-                          }}>
+                          <Avatar sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", width: 32, height: 32 }}>
                             <SchoolRoundedIcon sx={{ fontSize: 16 }} />
                           </Avatar>
                           {ei < day.entries.length - 1 && (

@@ -12,6 +12,8 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import { useRouter } from "next/navigation";
 import { useEmployeeControllerGetStatsQuery } from "@/lib/redux/api/generatedApi";
 import { toUIProgramStats } from "@/data/employeeAdapter";
+import PageHeader from "@/components/atoms/PageHeader";
+import InsightCard from "@/components/molecules/InsightCard";
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function HomePage() {
 
   const stats = useMemo(
     () => (rawStats ? toUIProgramStats(rawStats) : null),
-    [rawStats]
+    [rawStats],
   );
 
   if (isLoading) {
@@ -39,6 +41,13 @@ export default function HomePage() {
       </Box>
     );
   }
+
+  const topCards = [
+    { label: "Total Employees", value: String(stats.totalEmployees), icon: <GroupsIcon />, color: "#2563eb" },
+    { label: "Completion Rate", value: `${stats.completionRate}%`, icon: <TrendingUpIcon />, color: "#16a34a" },
+    { label: "Assessments Due", value: String(stats.assessmentsDue), icon: <AccessibilityNewIcon />, color: "#ea580c" },
+    { label: "Avg. Days to Complete", value: "1", icon: <ChairAltIcon />, color: "#7c3aed" },
+  ];
 
   const metrics = [
     {
@@ -65,56 +74,17 @@ export default function HomePage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ mb: 0.5, color: "text.primary", fontSize: { xs: "1.4rem", sm: "2.125rem" } }}>
-          Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Overview of your ergonomics program performance
-        </Typography>
-      </Box>
-
+      <PageHeader
+        title="Dashboard"
+        subtitle="Overview of your ergonomics program performance"
+      />
       <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 3 }}>
-        {[
-          { label: "Total Employees", value: String(stats.totalEmployees), icon: <GroupsIcon />, color: "#2563eb" },
-          { label: "Completion Rate", value: `${stats.completionRate}%`, icon: <TrendingUpIcon />, color: "#16a34a" },
-          { label: "Assessments Due", value: String(stats.assessmentsDue), icon: <AccessibilityNewIcon />, color: "#ea580c" },
-          { label: "Avg. Days to Complete", value: "1", icon: <ChairAltIcon />, color: "#7c3aed" },
-        ].map((stat, i) => (
+        {topCards.map((stat, i) => (
           <Grid size={{ xs: 6, md: 3 }} key={i}>
-            <Card
-              sx={{
-                "&:hover": { borderColor: alpha(stat.color, 0.3) },
-                transition: "all 0.2s ease",
-              }}
-            >
-              <CardContent sx={{ p: { xs: "12px !important", sm: "16px !important" } }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 } }}>
-                  <Box
-                    sx={{
-                      width: { xs: 34, sm: 40 }, height: { xs: 34, sm: 40 }, borderRadius: "10px",
-                      bgcolor: alpha(stat.color, 0.08),
-                      color: stat.color,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      "& svg": { fontSize: { xs: "1.1rem", sm: "1.3rem" } },
-                      flexShrink: 0,
-                    }}
-                  >
-                    {stat.icon}
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="h5" sx={{ lineHeight: 1.1, fontSize: { xs: "1.1rem", sm: "1.5rem" } }}>{stat.value}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: "none", letterSpacing: 0, fontSize: { xs: "0.65rem", sm: "0.75rem" } }} noWrap>
-                      {stat.label}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
+            <InsightCard {...stat} />
           </Grid>
         ))}
       </Grid>
-
       <Grid container spacing={{ xs: 2, md: 3 }}>
         {metrics.map((module, idx) => {
           const completionRate = module.stats.enrolled > 0
@@ -149,8 +119,7 @@ export default function HomePage() {
                         width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 }, borderRadius: "12px",
                         bgcolor: module.iconBg, color: module.iconColor,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                        ml: 1.5,
+                        flexShrink: 0, ml: 1.5,
                       }}
                     >
                       {module.icon}

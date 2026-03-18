@@ -1,39 +1,44 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, Button, TextField, Typography, InputAdornment,
-  alpha, Avatar, IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, CircularProgress, Tooltip, Switch, FormControlLabel,
-  Stack, FormControl, InputLabel, Select, MenuItem,
+  TableRow, Paper, Chip, Button, Typography,
+  alpha, Avatar, Dialog, DialogTitle, DialogContent,
+  DialogActions, CircularProgress, Stack,
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopy";
 import { useRouter } from "next/navigation";
 import {
   useOrganizationControllerFindAllQuery,
   useOrganizationControllerCreateMutation,
   useOrganizationControllerRemoveMutation,
 } from "@/lib/redux/api/generatedApi";
+import { AVATAR_COLORS } from "@/constants";
+import PageHeader from "@/components/atoms/PageHeader";
+import SearchField from "@/components/atoms/SearchField";
+import ConfirmDialog from "@/components/molecules/ConfirmDialog";
+import ApiKeyDisplay from "@/components/molecules/ApiKeyDisplay";
+import OrgFormFields, { type OrgFormValues } from "@/components/organisms/OrgFormFields";
+import { IconButton, Tooltip } from "@mui/material";
 
-const COURSE_OPTIONS = ["Office Ergonomics", "Self Assessment"];
+const EMPTY_FORM: OrgFormValues = {
+  name: "",
+  abbreviation: "",
+  notes: "",
+  courses: [],
+  enableDepartments: false,
+  active: true,
+};
 
 export default function OrganizationsPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-
-  const [formName, setFormName] = useState("");
-  const [formAbbreviation, setFormAbbreviation] = useState("");
-  const [formNotes, setFormNotes] = useState("");
-  const [formCourses, setFormCourses] = useState<string[]>([]);
-  const [formEnableDepartments, setFormEnableDepartments] = useState(false);
-  const [formActive, setFormActive] = useState(true);
+  const [form, setForm] = useState<OrgFormValues>(EMPTY_FORM);
 
   const { data: organizations, isLoading } = useOrganizationControllerFindAllQuery();
   const [createOrg, { isLoading: isCreating }] = useOrganizationControllerCreateMutation();
@@ -46,29 +51,29 @@ export default function OrganizationsPage() {
     return organizations.filter(
       (org) =>
         org.name.toLowerCase().includes(term) ||
-        org.abbreviation.toLowerCase().includes(term)
+        org.abbreviation.toLowerCase().includes(term),
     );
   }, [organizations, searchTerm]);
 
-  const resetForm = () => {
-    setFormName("");
-    setFormAbbreviation("");
-    setFormNotes("");
-    setFormCourses([]);
-    setFormEnableDepartments(false);
-    setFormActive(true);
-  };
+  const handleFormChange = useCallback(
+    <K extends keyof OrgFormValues>(field: K, value: OrgFormValues[K]) => {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const resetForm = () => setForm(EMPTY_FORM);
 
   const handleCreate = async () => {
     try {
       await createOrg({
         createOrganizationDto: {
-          name: formName,
-          abbreviation: formAbbreviation,
-          notes: formNotes || undefined,
-          courses: formCourses,
-          enableDepartments: formEnableDepartments,
-          active: formActive,
+          name: form.name,
+          abbreviation: form.abbreviation,
+          notes: form.notes || undefined,
+          courses: form.courses,
+          enableDepartments: form.enableDepartments,
+          active: form.active,
         },
       }).unwrap();
       setCreateOpen(false);
@@ -88,32 +93,22 @@ export default function OrganizationsPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const colors = ["#2563eb", "#7c3aed", "#0891b2", "#059669", "#dc2626", "#ea580c"];
-
   return (
     <Box>
-      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
-        <Box>
-          <Typography variant="h4" sx={{ mb: 0.5, fontSize: { xs: "1.4rem", sm: "2.125rem" } }}>
-            Organizations
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage organizations, API keys, and course assignments
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddRoundedIcon />}
-          onClick={() => setCreateOpen(true)}
-          sx={{ textTransform: "none", fontWeight: 600 }}
-        >
-          Add Organization
-        </Button>
-      </Box>
+      <PageHeader
+        title="Organizations"
+        subtitle="Manage organizations, API keys, and course assignments"
+        action={
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => setCreateOpen(true)}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            Add Organization
+          </Button>
+        }
+      />
 
       <Card>
         <Box
@@ -134,23 +129,11 @@ export default function OrganizationsPage() {
             </Typography>{" "}
             organizations
           </Typography>
-          <TextField
-            size="small"
-            variant="outlined"
-            placeholder="Search organizations..."
+          <SearchField
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{
-              width: { xs: "100%", sm: 280 },
-              "& .MuiOutlinedInput-root": { bgcolor: "#f8fafc" },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon sx={{ fontSize: "1.1rem", color: "text.secondary" }} />
-                </InputAdornment>
-              ),
-            }}
+            onChange={setSearchTerm}
+            placeholder="Search organizations..."
+            width={{ xs: "100%", sm: 280 }}
           />
         </Box>
 
@@ -175,11 +158,7 @@ export default function OrganizationsPage() {
                   <TableRow
                     key={org.id}
                     hover
-                    sx={{
-                      cursor: "pointer",
-                      "&:hover": { bgcolor: "#fafbfc" },
-                      transition: "background 0.15s",
-                    }}
+                    sx={{ cursor: "pointer", "&:hover": { bgcolor: "#fafbfc" }, transition: "background 0.15s" }}
                     onClick={() => router.push(`/organizations/${org.id}`)}
                   >
                     <TableCell>
@@ -187,26 +166,17 @@ export default function OrganizationsPage() {
                         <Avatar
                           src={org.logo || undefined}
                           sx={{
-                            width: 34,
-                            height: 34,
-                            fontSize: "0.7rem",
-                            fontWeight: 700,
-                            bgcolor: alpha(colors[i % colors.length], 0.1),
-                            color: colors[i % colors.length],
+                            width: 34, height: 34, fontSize: "0.7rem", fontWeight: 700,
+                            bgcolor: alpha(AVATAR_COLORS[i % AVATAR_COLORS.length], 0.1),
+                            color: AVATAR_COLORS[i % AVATAR_COLORS.length],
                             display: { xs: "none", sm: "flex" },
                           }}
                         >
                           {org.abbreviation.slice(0, 2).toUpperCase()}
                         </Avatar>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography
-                            variant="body2"
-                            noWrap
-                            sx={{
-                              fontWeight: 600,
-                              color: "primary.main",
-                              "&:hover": { textDecoration: "underline" },
-                            }}
+                          <Typography variant="body2" noWrap
+                            sx={{ fontWeight: 600, color: "primary.main", "&:hover": { textDecoration: "underline" } }}
                           >
                             {org.name}
                           </Typography>
@@ -217,58 +187,17 @@ export default function OrganizationsPage() {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontFamily: "monospace",
-                            fontSize: "0.75rem",
-                            bgcolor: "#f1f5f9",
-                            px: 1,
-                            py: 0.25,
-                            borderRadius: "4px",
-                            maxWidth: 140,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {org.apiKey}
-                        </Typography>
-                        <Tooltip title="Copy API key">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(org.apiKey);
-                            }}
-                          >
-                            <ContentCopyRoundedIcon sx={{ fontSize: "0.9rem" }} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      <ApiKeyDisplay apiKey={org.apiKey} variant="inline" />
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                         {org.courses.map((course) => (
-                          <Chip
-                            key={course}
-                            label={course}
-                            size="small"
-                            sx={{
-                              borderRadius: "6px",
-                              fontWeight: 600,
-                              fontSize: "0.65rem",
-                              height: 22,
-                              bgcolor: alpha("#2563eb", 0.08),
-                              color: "#2563eb",
-                            }}
+                          <Chip key={course} label={course} size="small"
+                            sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.65rem", height: 22, bgcolor: alpha("#2563eb", 0.08), color: "#2563eb" }}
                           />
                         ))}
                         {org.courses.length === 0 && (
-                          <Typography variant="caption" color="text.secondary">
-                            None
-                          </Typography>
+                          <Typography variant="caption" color="text.secondary">None</Typography>
                         )}
                       </Box>
                     </TableCell>
@@ -277,10 +206,7 @@ export default function OrganizationsPage() {
                         label={org.active ? "Active" : "Inactive"}
                         size="small"
                         sx={{
-                          borderRadius: "6px",
-                          fontWeight: 600,
-                          fontSize: "0.7rem",
-                          height: 24,
+                          borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", height: 24,
                           bgcolor: org.active ? "#dcfce7" : "#f1f5f9",
                           color: org.active ? "#15803d" : "#64748b",
                         }}
@@ -289,25 +215,12 @@ export default function OrganizationsPage() {
                     <TableCell align="right">
                       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 0.5 }}>
                         <Tooltip title="Edit">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/organizations/${org.id}`);
-                            }}
-                          >
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); router.push(`/organizations/${org.id}`); }}>
                             <EditRoundedIcon sx={{ fontSize: "1rem" }} />
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteTarget({ id: org.id, name: org.name });
-                            }}
-                          >
+                          <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: org.id, name: org.name }); }}>
                             <DeleteRoundedIcon sx={{ fontSize: "1rem" }} />
                           </IconButton>
                         </Tooltip>
@@ -318,9 +231,7 @@ export default function OrganizationsPage() {
                 {!isLoading && filtered.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} sx={{ textAlign: "center", py: 4 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No organizations found
-                      </Typography>
+                      <Typography variant="body2" color="text.secondary">No organizations found</Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -330,96 +241,25 @@ export default function OrganizationsPage() {
         </TableContainer>
       </Card>
 
-      {/* Create Organization Dialog */}
-      <Dialog
-        open={createOpen}
-        onClose={() => { setCreateOpen(false); resetForm(); }}
-        maxWidth="sm"
-        fullWidth
-      >
+      {/* Create Dialog */}
+      <Dialog open={createOpen} onClose={() => { setCreateOpen(false); resetForm(); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Add Organization</DialogTitle>
         <DialogContent>
-          <Stack spacing={2.5} sx={{ mt: 1 }}>
-            <TextField
-              label="Organization Name"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-              fullWidth
-              required
-              size="small"
+          <Stack sx={{ mt: 1 }}>
+            <OrgFormFields
+              values={form}
+              onChange={handleFormChange}
+              showAbbreviationHelp
+              notesRows={2}
             />
-            <TextField
-              label="Abbreviation"
-              value={formAbbreviation}
-              onChange={(e) => setFormAbbreviation(e.target.value)}
-              fullWidth
-              required
-              size="small"
-              helperText="Short identifier for the organization"
-            />
-            <TextField
-              label="Notes"
-              value={formNotes}
-              onChange={(e) => setFormNotes(e.target.value)}
-              fullWidth
-              multiline
-              rows={2}
-              size="small"
-            />
-            <FormControl size="small" fullWidth>
-              <InputLabel>Courses</InputLabel>
-              <Select
-                multiple
-                value={formCourses}
-                onChange={(e) => setFormCourses(e.target.value as string[])}
-                label="Courses"
-                renderValue={(selected) => (
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                    {selected.map((v) => (
-                      <Chip key={v} label={v} size="small" sx={{ height: 22, fontSize: "0.75rem" }} />
-                    ))}
-                  </Box>
-                )}
-              >
-                {COURSE_OPTIONS.map((course) => (
-                  <MenuItem key={course} value={course}>
-                    {course}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formEnableDepartments}
-                    onChange={(e) => setFormEnableDepartments(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={<Typography variant="body2">Enable Departments</Typography>}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formActive}
-                    onChange={(e) => setFormActive(e.target.checked)}
-                    size="small"
-                  />
-                }
-                label={<Typography variant="body2">Active</Typography>}
-              />
-            </Box>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setCreateOpen(false); resetForm(); }} sx={{ textTransform: "none" }}>
-            Cancel
-          </Button>
+          <Button onClick={() => { setCreateOpen(false); resetForm(); }} sx={{ textTransform: "none" }}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={!formName.trim() || !formAbbreviation.trim() || isCreating}
+            disabled={!form.name.trim() || !form.abbreviation.trim() || isCreating}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
             {isCreating ? <CircularProgress size={18} /> : "Create"}
@@ -427,29 +267,20 @@ export default function OrganizationsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Delete Organization</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteTarget(null)} sx={{ textTransform: "none" }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDelete}
-            disabled={isDeleting}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
-            {isDeleting ? <CircularProgress size={18} /> : "Delete"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Organization"
+        confirmLabel="Delete"
+        confirmColor="error"
+        isLoading={isDeleting}
+      >
+        <Typography variant="body2">
+          Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This action cannot be undone.
+        </Typography>
+      </ConfirmDialog>
     </Box>
   );
 }

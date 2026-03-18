@@ -3,17 +3,13 @@
 import { useMemo, useState } from "react";
 import {
   Box, Card, CardContent, Grid, Typography, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, Chip, Button, TextField,
-  alpha, InputAdornment, Tooltip, Select, MenuItem, CircularProgress,
-  TableSortLabel,
+  TableContainer, TableHead, TableRow, Paper, Chip, Tooltip,
+  CircularProgress, TableSortLabel,
 } from "@mui/material";
 import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useRouter } from "next/navigation";
 import {
@@ -22,16 +18,17 @@ import {
   useEmployeeControllerGetBodyAggregationQuery,
 } from "@/lib/redux/api/generatedApi";
 import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
+import { STATUS_CONFIG, DEFAULT_STATUS_STYLE } from "@/constants";
+import { usePaginatedTable } from "@/hooks/usePaginatedTable";
+import PageHeader from "@/components/atoms/PageHeader";
+import FilterButtons from "@/components/atoms/FilterButtons";
+import SearchField from "@/components/atoms/SearchField";
+import InsightCard from "@/components/molecules/InsightCard";
+import PaginationBar from "@/components/molecules/PaginationBar";
+import DonutChart from "@/components/organisms/DonutChart";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
-const STATUS_CONFIG: Record<string, { bg: string; color: string }> = {
-  Pass: { bg: "#dcfce7", color: "#15803d" },
-  "Action Needed": { bg: "#fef3c7", color: "#b45309" },
-  Assessment: { bg: "#fee2e2", color: "#b91c1c" },
-  "In Progress": { bg: "#fff7ed", color: "#c2410c" },
-  "Not Taken": { bg: "#f1f5f9", color: "#64748b" },
-};
-
+const FILTER_OPTIONS = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
 const FILTER_STATUS_MAP: Record<string, string | undefined> = {
   All: undefined,
   Pass: "pass",
@@ -40,75 +37,34 @@ const FILTER_STATUS_MAP: Record<string, string | undefined> = {
   "In Progress": "pending",
 };
 
-const DonutChart = ({
-  pass, action, assessment, inProgress,
-}: {
-  pass: number; action: number; assessment: number; inProgress: number;
-}) => {
-  const total = pass + action + assessment + inProgress;
-  if (total === 0) return null;
-
-  const passPct = (pass / total) * 100;
-  const actionPct = (action / total) * 100;
-  const assessmentPct = (assessment / total) * 100;
-  const radius = 15.9155;
-
-  return (
-    <Box sx={{ position: "relative", width: { xs: 180, sm: 240 }, height: { xs: 180, sm: 240 }, margin: "0 auto" }}>
-      <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
-        <circle cx="18" cy="18" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="3.5" />
-        <circle cx="18" cy="18" r={radius} fill="none" stroke="#16a34a" strokeWidth="3.5"
-          strokeDasharray={`${passPct} ${100 - passPct}`} strokeLinecap="round" />
-        <circle cx="18" cy="18" r={radius} fill="none" stroke="#f59e0b" strokeWidth="3.5"
-          strokeDasharray={`${actionPct} ${100 - actionPct}`} strokeDashoffset={`${-passPct}`}
-          strokeLinecap="round" />
-        <circle cx="18" cy="18" r={radius} fill="none" stroke="#ef4444" strokeWidth="3.5"
-          strokeDasharray={`${assessmentPct} ${100 - assessmentPct}`} strokeDashoffset={`${-(passPct + actionPct)}`}
-          strokeLinecap="round" />
-      </svg>
-      <Box sx={{
-        position: "absolute", inset: 0,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1, fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
-          {Math.round(passPct)}%
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25 }}>
-          Pass Rate
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
-
-type SortableField = "name" | "email" | "createdAt" | "updatedAt";
-
 export default function SelfAssessmentPage() {
   const router = useRouter();
-  const [activeFilter, setActiveFilter] = useState<string>("All");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [sortBy, setSortBy] = useState<SortableField>("createdAt");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [activeFilter, setActiveFilter] = useState("All");
   const [discomfortView, setDiscomfortView] = useState<"count" | "average">("count");
+
+  const {
+    searchTerm, setSearchTerm,
+    page, setPage, pageSize, setPageSize,
+    sortBy, sortOrder, handleSort,
+  } = usePaginatedTable();
 
   const { data: rawStats } = useEmployeeControllerGetStatsQuery();
   const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
 
-  const { data: reportResponse, isLoading: isLoadingReport } = useEmployeeControllerGetCourseReportQuery({
-    course: "Self Assessment",
-    search: searchTerm || undefined,
-    status: FILTER_STATUS_MAP[activeFilter],
-    sortBy,
-    sortOrder,
-    page,
-    limit: pageSize,
-  });
+  const { data: reportResponse, isLoading: isLoadingReport } =
+    useEmployeeControllerGetCourseReportQuery({
+      course: "Self Assessment",
+      search: searchTerm || undefined,
+      status: FILTER_STATUS_MAP[activeFilter],
+      sortBy,
+      sortOrder,
+      page,
+      limit: pageSize,
+    });
 
   const rows: SAReportRow[] = useMemo(
     () => (reportResponse?.data ? reportResponse.data.map(toSAReportRow) : []),
-    [reportResponse]
+    [reportResponse],
   );
 
   const { data: discomfortData } = useEmployeeControllerGetBodyAggregationQuery({
@@ -121,56 +77,45 @@ export default function SelfAssessmentPage() {
   const currentPage = meta?.page ?? page;
   const totalEntries = meta?.total ?? 0;
 
-  const filters = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
-
-  const handleSort = (field: SortableField) => {
-    if (sortBy === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortOrder(field === "name" || field === "email" ? "asc" : "desc");
-    }
-    setPage(1);
-  };
-
   const insights = stats
     ? [
-      { label: "Total Enrolled", value: String(stats.sa.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb", bg: alpha("#2563eb", 0.08) },
-      { label: "Pass", value: String(stats.sa.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a", bg: alpha("#16a34a", 0.08) },
-      { label: "Action Needed", value: String(stats.sa.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c", bg: alpha("#ea580c", 0.08) },
-      { label: "Assessment", value: String(stats.sa.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626", bg: alpha("#dc2626", 0.08) },
+      { label: "Total Enrolled", value: String(stats.sa.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb" },
+      { label: "Pass", value: String(stats.sa.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a" },
+      { label: "Action Needed", value: String(stats.sa.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c" },
+      { label: "Assessment", value: String(stats.sa.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626" },
     ]
     : [];
+
+  const donutSegments = stats
+    ? [
+      { value: stats.sa.pass, color: "#16a34a", label: "Pass" },
+      { value: stats.sa.action, color: "#f59e0b", label: "Action" },
+      { value: stats.sa.assessment, color: "#ef4444", label: "Assessment" },
+      { value: stats.sa.inProgress, color: "#94a3b8", label: "In Progress" },
+    ]
+    : [];
+
+  const passPct = stats
+    ? (stats.sa.pass + stats.sa.action + stats.sa.assessment + stats.sa.inProgress) > 0
+      ? Math.round(
+        (stats.sa.pass /
+          (stats.sa.pass + stats.sa.action + stats.sa.assessment + stats.sa.inProgress)) *
+        100,
+      )
+      : 0
+    : 0;
 
   const bodyData = useMemo(() => {
     if (!discomfortData) return {} as Record<string, number>;
     return (discomfortView === "count" ? discomfortData.countData : discomfortData.avgData) as Record<string, number>;
   }, [discomfortData, discomfortView]);
 
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, "ellipsis-1", totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1, "ellipsis-1", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, "ellipsis-1", currentPage - 1, currentPage, currentPage + 1, "ellipsis-2", totalPages);
-      }
-    }
-    return pages;
-  };
-
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: 0.5, fontSize: { xs: "1.4rem", sm: "2.125rem" } }}>Self Assessment</Typography>
-        <Typography variant="body1" color="text.secondary">
-          Employee self-assessment results and status overview
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Self Assessment"
+        subtitle="Employee self-assessment results and status overview"
+      />
 
       <Grid container spacing={{ xs: 2, md: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -179,29 +124,11 @@ export default function SelfAssessmentPage() {
               <Typography variant="subtitle1" sx={{ mb: 1 }}>Result Summary</Typography>
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: { xs: 240, md: 280 } }}>
                 {stats ? (
-                  <Box>
-                    <DonutChart
-                      pass={stats.sa.pass}
-                      action={stats.sa.action}
-                      assessment={stats.sa.assessment}
-                      inProgress={stats.sa.inProgress}
-                    />
-                    <Box sx={{ display: "flex", justifyContent: "center", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
-                      {[
-                        { label: "Pass", count: stats.sa.pass, color: "#16a34a" },
-                        { label: "Action", count: stats.sa.action, color: "#f59e0b" },
-                        { label: "Assessment", count: stats.sa.assessment, color: "#ef4444" },
-                        { label: "In Progress", count: stats.sa.inProgress, color: "#94a3b8" },
-                      ].map((item) => (
-                        <Box key={item.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: item.color, flexShrink: 0 }} />
-                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.7rem", sm: "0.825rem" } }}>
-                            {item.label} ({item.count})
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
+                  <DonutChart
+                    segments={donutSegments}
+                    centerValue={`${passPct}%`}
+                    centerLabel="Pass Rate"
+                  />
                 ) : (
                   <CircularProgress size={28} />
                 )}
@@ -221,31 +148,11 @@ export default function SelfAssessmentPage() {
                     <InfoOutlinedIcon sx={{ fontSize: 16, color: "text.disabled", cursor: "help" }} />
                   </Tooltip>
                 </Box>
-                <Box sx={{ display: "flex", gap: 0.5 }}>
-                  {([
-                    { key: "count", label: "Count" },
-                    { key: "average", label: "Average" },
-                  ] as const).map((opt) => (
-                    <Button
-                      key={opt.key}
-                      size="small"
-                      variant="contained"
-                      onClick={() => setDiscomfortView(opt.key)}
-                      sx={{
-                        textTransform: "none",
-                        bgcolor: discomfortView === opt.key ? "primary.main" : alpha("#64748b", 0.08),
-                        color: discomfortView === opt.key ? "white" : "text.secondary",
-                        fontWeight: 600,
-                        fontSize: "0.8rem",
-                        "&:hover": {
-                          bgcolor: discomfortView === opt.key ? "primary.dark" : alpha("#64748b", 0.12),
-                        },
-                      }}
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </Box>
+                <FilterButtons
+                  options={["count", "average"]}
+                  active={discomfortView}
+                  onChange={(v) => setDiscomfortView(v as "count" | "average")}
+                />
               </Box>
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
                 {discomfortData ? (
@@ -261,27 +168,12 @@ export default function SelfAssessmentPage() {
             </CardContent>
           </Card>
         </Grid>
+
         <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={1.5} sx={{ height: "100%" }}>
             {insights.map((item, i) => (
               <Grid size={{ xs: 6, md: 12 }} key={i}>
-                <Card sx={{ height: "100%", "&:hover": { borderColor: alpha(item.color, 0.2) }, transition: "all 0.2s" }}>
-                  <CardContent sx={{ p: "14px !important", display: "flex", alignItems: "center", gap: 2 }}>
-                    <Box sx={{
-                      width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 }, borderRadius: "10px",
-                      bgcolor: item.bg, color: item.color,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      "& svg": { fontSize: "1.3rem" },
-                      flexShrink: 0,
-                    }}>
-                      {item.icon}
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" color="text.secondary">{item.label}</Typography>
-                      <Typography variant="h6" sx={{ lineHeight: 1.1 }}>{item.value}</Typography>
-                    </Box>
-                  </CardContent>
-                </Card>
+                <InsightCard {...item} />
               </Grid>
             ))}
           </Grid>
@@ -292,28 +184,13 @@ export default function SelfAssessmentPage() {
               p: 2, display: "flex", justifyContent: "space-between", alignItems: "center",
               borderBottom: "1px solid", borderColor: "divider", flexWrap: "wrap", gap: 1.5,
             }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
-                {filters.map((f) => (
-                  <Button key={f} size="small" variant="contained"
-                    onClick={() => { setActiveFilter(f); setPage(1); }}
-                    sx={{
-                      bgcolor: activeFilter === f ? "primary.main" : alpha("#64748b", 0.08),
-                      color: activeFilter === f ? "white" : "text.secondary",
-                      "&:hover": { bgcolor: activeFilter === f ? "primary.dark" : alpha("#64748b", 0.12) },
-                      fontSize: { xs: "0.7rem", sm: "0.825rem" },
-                      px: { xs: 1, sm: 2 },
-                    }}
-                  >
-                    {f}
-                  </Button>
-                ))}
-              </Box>
-              <TextField
-                size="small" placeholder="Search..." variant="outlined" sx={{ width: { xs: "100%", sm: 220 } }}
-                value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon sx={{ fontSize: "1rem", color: "text.secondary" }} /></InputAdornment> }}
+              <FilterButtons
+                options={FILTER_OPTIONS}
+                active={activeFilter}
+                onChange={(f) => { setActiveFilter(f); setPage(1); }}
+                compact
               />
+              <SearchField value={searchTerm} onChange={setSearchTerm} />
             </Box>
             <TableContainer component={Paper} elevation={0} sx={{ overflow: "auto" }}>
               {isLoadingReport ? (
@@ -357,7 +234,7 @@ export default function SelfAssessmentPage() {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => {
-                      const config = STATUS_CONFIG[row.status] || { bg: "#f1f5f9", color: "#64748b" };
+                      const config = STATUS_CONFIG[row.status] || DEFAULT_STATUS_STYLE;
                       return (
                         <TableRow key={row.id} hover sx={{ cursor: "pointer" }}
                           onClick={() => router.push(`/employees/${row.id}/${nameToSlug(row.name)}`)}
@@ -392,52 +269,14 @@ export default function SelfAssessmentPage() {
               )}
             </TableContainer>
 
-            <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid", borderColor: "divider", flexWrap: "wrap", gap: 1 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-                <Typography variant="body2" color="text.secondary">
-                  Page {currentPage} of {totalPages} · {totalEntries} entries
-                </Typography>
-                <Select
-                  size="small"
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  sx={{ height: 32, fontSize: "0.85rem", bgcolor: "background.paper" }}
-                >
-                  {[5, 10, 25, 50].map((size) => (
-                    <MenuItem key={size} value={size} sx={{ fontSize: "0.85rem" }}>
-                      {size} / page
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
-
-              <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-                <Button size="small" variant="outlined" disabled={currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  sx={{ minWidth: 32, px: 1 }}>
-                  <ChevronLeftIcon sx={{ fontSize: "1.1rem" }} />
-                </Button>
-                {getPageNumbers().map((n) =>
-                  typeof n === "string" ? (
-                    <Typography key={n} variant="body2" color="text.secondary" sx={{ px: 0.5, display: "flex", alignItems: "center" }}>
-                      …
-                    </Typography>
-                  ) : (
-                    <Button key={n} size="small" variant={n === currentPage ? "contained" : "outlined"}
-                      onClick={() => setPage(n as number)}
-                      sx={{ minWidth: 32, px: 1 }}>{n}</Button>
-                  )
-                )}
-                <Button size="small" variant="outlined" disabled={currentPage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  sx={{ minWidth: 32, px: 1 }}>
-                  <ChevronRightIcon sx={{ fontSize: "1.1rem" }} />
-                </Button>
-              </Box>
-            </Box>
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalEntries={totalEntries}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </Card>
         </Grid>
       </Grid>

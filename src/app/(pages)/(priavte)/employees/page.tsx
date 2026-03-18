@@ -2,54 +2,28 @@
 
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, Paper, Chip, Button, TextField, Typography, InputAdornment,
-  alpha, Avatar, Select, MenuItem, CircularProgress, TableSortLabel,
+  TableRow, Paper, Typography, alpha, Avatar, CircularProgress,
+  TableSortLabel,
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useEmployeeControllerFindAllQuery } from "@/lib/redux/api/generatedApi";
 import { toUIEmployees } from "@/data/employeeAdapter";
-
-const STATUS_CONFIG: Record<string, { bg: string; color: string; border?: string }> = {
-  Completed: { bg: "#dcfce7", color: "#15803d" },
-  Pass: { bg: "#dcfce7", color: "#15803d" },
-  "Not Taken": { bg: "#f1f5f9", color: "#64748b" },
-  "In Progress": { bg: "#fff7ed", color: "#c2410c" },
-  "Action Needed": { bg: "#fef3c7", color: "#b45309" },
-  Assessment: { bg: "#fee2e2", color: "#b91c1c" },
-};
-
-const StatusChip = ({ status }: { status: string }) => {
-  const config = STATUS_CONFIG[status] || { bg: "#f1f5f9", color: "#64748b" };
-  return (
-    <Chip
-      label={status}
-      size="small"
-      sx={{
-        borderRadius: "6px",
-        fontWeight: 600,
-        fontSize: "0.7rem",
-        height: 24,
-        bgcolor: config.bg,
-        color: config.color,
-        border: "none",
-      }}
-    />
-  );
-};
-
-type SortableField = "name" | "email" | "createdAt" | "updatedAt";
+import { AVATAR_COLORS } from "@/constants";
+import { usePaginatedTable } from "@/hooks/usePaginatedTable";
+import StatusChip from "@/components/atoms/StatusChip";
+import PageHeader from "@/components/atoms/PageHeader";
+import SearchField from "@/components/atoms/SearchField";
+import PaginationBar from "@/components/molecules/PaginationBar";
 
 export default function EmployeesPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [sortBy, setSortBy] = useState<SortableField>("createdAt");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  const {
+    searchTerm, setSearchTerm,
+    page, setPage, pageSize, setPageSize,
+    sortBy, sortOrder, handleSort,
+  } = usePaginatedTable();
 
   const { data: response, isLoading } = useEmployeeControllerFindAllQuery({
     search: searchTerm || undefined,
@@ -61,7 +35,7 @@ export default function EmployeesPage() {
 
   const employees = useMemo(
     () => (response?.data ? toUIEmployees(response.data) : []),
-    [response]
+    [response],
   );
 
   const meta = response?.meta;
@@ -69,45 +43,15 @@ export default function EmployeesPage() {
   const currentPage = meta?.page ?? page;
   const totalCount = meta?.total ?? 0;
 
-  const handleSort = (field: SortableField) => {
-    if (sortBy === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortOrder(field === "name" || field === "email" ? "asc" : "desc");
-    }
-    setPage(1);
-  };
-
   const getInitials = (name: string) =>
     name.split(" ").map((w) => w[0]).join("").toUpperCase();
 
-  const colors = ["#2563eb", "#7c3aed", "#0891b2", "#059669", "#dc2626"];
-
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 3) {
-        pages.push(1, 2, 3, 4, "ellipsis-1", totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1, "ellipsis-1", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, "ellipsis-1", currentPage - 1, currentPage, currentPage + 1, "ellipsis-2", totalPages);
-      }
-    }
-    return pages;
-  };
-
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: 0.5, fontSize: { xs: "1.4rem", sm: "2.125rem" } }}>Employees</Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage and view employee training status
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Employees"
+        subtitle="Manage and view employee training status"
+      />
 
       <Card>
         <Box
@@ -123,31 +67,20 @@ export default function EmployeesPage() {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ fontWeight: 600, color: "text.primary" }}
+            >
               {totalCount}
             </Typography>{" "}
             employees
           </Typography>
-          <TextField
-            size="small"
-            variant="outlined"
-            placeholder="Search employees..."
+          <SearchField
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPage(1);
-            }}
-            sx={{
-              width: { xs: "100%", sm: 280 },
-              "& .MuiOutlinedInput-root": { bgcolor: "#f8fafc" },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon sx={{ fontSize: "1.1rem", color: "text.secondary" }} />
-                </InputAdornment>
-              ),
-            }}
+            onChange={setSearchTerm}
+            placeholder="Search employees..."
+            width={{ xs: "100%", sm: 280 }}
           />
         </Box>
 
@@ -195,8 +128,11 @@ export default function EmployeesPage() {
                             height: 34,
                             fontSize: "0.7rem",
                             fontWeight: 700,
-                            bgcolor: alpha(colors[i % colors.length], 0.1),
-                            color: colors[i % colors.length],
+                            bgcolor: alpha(
+                              AVATAR_COLORS[i % AVATAR_COLORS.length],
+                              0.1,
+                            ),
+                            color: AVATAR_COLORS[i % AVATAR_COLORS.length],
                             display: { xs: "none", sm: "flex" },
                           }}
                         >
@@ -242,76 +178,13 @@ export default function EmployeesPage() {
           )}
         </TableContainer>
 
-        <Box
-          sx={{
-            p: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderTop: "1px solid",
-            borderColor: "divider",
-            flexWrap: "wrap",
-            gap: 1,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-            <Typography variant="body2" color="text.secondary">
-              Page {currentPage} of {totalPages}
-            </Typography>
-            <Select
-              size="small"
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              sx={{ height: 32, fontSize: "0.85rem", bgcolor: "background.paper" }}
-            >
-              {[5, 10, 25, 50].map((size) => (
-                <MenuItem key={size} value={size} sx={{ fontSize: "0.85rem" }}>
-                  {size} / page
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
-          <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={currentPage <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              sx={{ minWidth: 32, px: 1 }}
-            >
-              <ChevronLeftIcon sx={{ fontSize: "1.1rem" }} />
-            </Button>
-            {getPageNumbers().map((n) =>
-              typeof n === "string" ? (
-                <Typography key={n} variant="body2" color="text.secondary" sx={{ px: 0.5, display: "flex", alignItems: "center" }}>
-                  …
-                </Typography>
-              ) : (
-                <Button
-                  key={n}
-                  size="small"
-                  variant={n === currentPage ? "contained" : "outlined"}
-                  onClick={() => setPage(n as number)}
-                  sx={{ minWidth: 32, px: 1 }}
-                >
-                  {n}
-                </Button>
-              )
-            )}
-            <Button
-              size="small"
-              variant="outlined"
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              sx={{ minWidth: 32, px: 1 }}
-            >
-              <ChevronRightIcon sx={{ fontSize: "1.1rem" }} />
-            </Button>
-          </Box>
-        </Box>
+        <PaginationBar
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </Card>
     </Box>
   );
