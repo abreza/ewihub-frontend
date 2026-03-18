@@ -1553,7 +1553,7 @@ bare-url@^2.2.2:
 
 baseline-browser-mapping@^2.10.8:
   version "2.10.8"
-  resolved "https://package-mirror.liara.ir/repository/npm/baseline-browser-mapping/-/baseline-browser-mapping-2.10.8.tgz#23d1cea1a85b181c2b8660b6cfe626dc2fb15630"
+  resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.10.8.tgz#23d1cea1a85b181c2b8660b6cfe626dc2fb15630"
   integrity sha512-PCLz/LXGBsNTErbtB6i5u4eLpHeMfi93aUv5duMmj6caNu6IphS4q6UevDnL36sZQv9lrP11dbPKGMaXPwMKfQ==
 
 baseline-browser-mapping@^2.8.25:
