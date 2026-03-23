@@ -5,11 +5,36 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { UIEmployeeDetail } from "@/data/employeeAdapter";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
+import FollowUpStatusSelect from "@/components/molecules/FollowUpStatusSelect";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
-const SelfAssessmentSection = ({ detail, resultLabel }: { detail: NonNullable<UIEmployeeDetail["selfAssessmentDetail"]>; resultLabel: string }) => (
+interface SelfAssessmentSectionProps {
+  detail: NonNullable<UIEmployeeDetail["selfAssessmentDetail"]>;
+  resultLabel: string;
+  employeeId?: string;
+  showFollowUp?: boolean;
+  followUpOptions?: string[];
+}
+
+const SelfAssessmentSection = ({
+  detail,
+  resultLabel,
+  employeeId,
+  showFollowUp = false,
+  followUpOptions = [],
+}: SelfAssessmentSectionProps) => (
   <Box sx={{ mt: 3 }}>
-    <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>Self Assessment Details</Typography>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
+      <Typography variant="h6" sx={{ fontSize: "1rem" }}>Self Assessment Details</Typography>
+      {showFollowUp && employeeId && detail.trainingId && (
+        <FollowUpStatusSelect
+          employeeId={employeeId}
+          trainingId={detail.trainingId}
+          currentStatus={detail.followUpStatus}
+          options={followUpOptions}
+        />
+      )}
+    </Box>
     <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap" }}>
       <Card sx={{ flex: 1, minWidth: { xs: "100%", sm: 300 } }}>
         <Box sx={{ p: { xs: 2, sm: 2.5 } }}>

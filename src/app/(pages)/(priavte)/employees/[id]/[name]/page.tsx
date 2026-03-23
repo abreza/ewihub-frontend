@@ -9,13 +9,17 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import EmailRoundedIcon from "@mui/icons-material/EmailRounded";
 import { useParams } from "next/navigation";
-import { useEmployeeControllerFindOneQuery } from "@/lib/redux/api/generatedApi";
+import {
+  useEmployeeControllerFindOneQuery,
+  useOrganizationControllerFindOneQuery,
+} from "@/lib/redux/api/generatedApi";
 import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
 import SearchField from "@/components/atoms/SearchField";
 import FilterButtons from "@/components/atoms/FilterButtons";
 import DetailRow from "@/components/molecules/DetailRow";
 import DemographicDisplay from "@/components/molecules/DemographicDisplay";
+import FollowUpStatusSelect from "@/components/molecules/FollowUpStatusSelect";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 import SelfAssessmentSection from "@/components/organisms/SelfAssessmentSection";
 
@@ -41,6 +45,14 @@ export default function EmployeeDetailPage() {
     () => (rawEmployee ? toUIEmployeeDetail(rawEmployee) : null),
     [rawEmployee],
   );
+
+  const { data: org } = useOrganizationControllerFindOneQuery(
+    { id: rawEmployee?.organization || "" },
+    { skip: !rawEmployee?.organization },
+  );
+
+  const showFollowUp = !!org?.enableFollowUpStatus;
+  const followUpOptions = org?.followUpStatuses ?? [];
 
   if (isLoading) {
     return (
@@ -129,6 +141,7 @@ export default function EmployeeDetailPage() {
         </Box>
 
         <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
+          {/* ── Summary Tab ── */}
           {activeTab === 0 && (
             <Box>
               <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>Training Overview</Typography>
@@ -139,6 +152,7 @@ export default function EmployeeDetailPage() {
                       <TableCell>Date</TableCell>
                       <TableCell>Training</TableCell>
                       <TableCell>Result</TableCell>
+                      {showFollowUp && <TableCell>Follow-Up</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -147,13 +161,33 @@ export default function EmployeeDetailPage() {
                         <TableCell>{t.date}</TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>{t.training}</TableCell>
                         <TableCell><StatusChip status={t.result} /></TableCell>
+                        {showFollowUp && (
+                          <TableCell>
+                            {t.training === "Self Assessment" && t.trainingId ? (
+                              <FollowUpStatusSelect
+                                employeeId={employeeId}
+                                trainingId={t.trainingId}
+                                currentStatus={t.followUpStatus}
+                                options={followUpOptions}
+                              />
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">—</Typography>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
               {employee.selfAssessmentDetail && (
-                <SelfAssessmentSection detail={employee.selfAssessmentDetail} resultLabel={resultLabel} />
+                <SelfAssessmentSection
+                  detail={employee.selfAssessmentDetail}
+                  resultLabel={resultLabel}
+                  employeeId={employeeId}
+                  showFollowUp={showFollowUp}
+                  followUpOptions={followUpOptions}
+                />
               )}
             </Box>
           )}
@@ -171,6 +205,7 @@ export default function EmployeeDetailPage() {
                       <TableCell>Started</TableCell>
                       <TableCell>Completed</TableCell>
                       <TableCell>Result</TableCell>
+                      {showFollowUp && <TableCell>Follow-Up</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -180,6 +215,20 @@ export default function EmployeeDetailPage() {
                         <TableCell>{t.startedDate || "-"}</TableCell>
                         <TableCell>{t.completedDate || "-"}</TableCell>
                         <TableCell><StatusChip status={t.result} /></TableCell>
+                        {showFollowUp && (
+                          <TableCell>
+                            {t.training === "Self Assessment" && t.trainingId ? (
+                              <FollowUpStatusSelect
+                                employeeId={employeeId}
+                                trainingId={t.trainingId}
+                                currentStatus={t.followUpStatus}
+                                options={followUpOptions}
+                              />
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">—</Typography>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -192,6 +241,8 @@ export default function EmployeeDetailPage() {
               </Box>
             </Box>
           )}
+
+          {/* ── Timeline Tab ── */}
           {activeTab === 2 && (
             <Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap", gap: 1.5 }}>
@@ -232,9 +283,19 @@ export default function EmployeeDetailPage() {
                           )}
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-                          <Typography variant="body1" sx={{ color: "primary.main", fontWeight: 600, mb: 1 }}>
-                            {entry.type}
-                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
+                            <Typography variant="body1" sx={{ color: "primary.main", fontWeight: 600 }}>
+                              {entry.type}
+                            </Typography>
+                            {showFollowUp && entry.type === "Self Assessment" && entry.trainingId && (
+                              <FollowUpStatusSelect
+                                employeeId={employeeId}
+                                trainingId={entry.trainingId}
+                                currentStatus={entry.followUpStatus}
+                                options={followUpOptions}
+                              />
+                            )}
+                          </Box>
 
                           {entry.details ? (
                             <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap" }}>

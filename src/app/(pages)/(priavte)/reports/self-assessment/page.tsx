@@ -1,4 +1,3 @@
-// src/app/(pages)/(priavte)/reports/self-assessment/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
