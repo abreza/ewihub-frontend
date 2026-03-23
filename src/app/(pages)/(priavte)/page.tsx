@@ -10,14 +10,26 @@ import AccessibilityNewIcon from "@mui/icons-material/AccessibilityNew";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import GroupsIcon from "@mui/icons-material/Groups";
 import { useRouter } from "next/navigation";
-import { useEmployeeControllerGetStatsQuery } from "@/lib/redux/api/generatedApi";
+import {
+  useEmployeeControllerGetStatsQuery,
+  useOrganizationControllerFindOneQuery,
+} from "@/lib/redux/api/generatedApi";
 import { toUIProgramStats } from "@/data/employeeAdapter";
+import { useMe } from "@/lib/hooks/useMe";
 import PageHeader from "@/components/atoms/PageHeader";
 import InsightCard from "@/components/molecules/InsightCard";
 
 export default function HomePage() {
   const router = useRouter();
+  const { user } = useMe();
   const { data: rawStats, isLoading, error } = useEmployeeControllerGetStatsQuery();
+
+  const { data: org } = useOrganizationControllerFindOneQuery(
+    { id: user?.organization || "" },
+    { skip: !user?.organization },
+  );
+
+  const isSuperAdmin = user?.role === "superAdmin";
 
   const stats = useMemo(
     () => (rawStats ? toUIProgramStats(rawStats) : null),
@@ -52,6 +64,7 @@ export default function HomePage() {
   const metrics = [
     {
       title: "Office Ergonomics",
+      course: "Office Ergonomics",
       description: "Workspace setup training & compliance",
       icon: <ChairAltIcon sx={{ fontSize: 28 }} />,
       stats: { enrolled: stats.oe.enrolled, completed: stats.oe.completed, inProgress: stats.oe.inProgress },
@@ -62,6 +75,7 @@ export default function HomePage() {
     },
     {
       title: "Self Assessment",
+      course: "Self Assessment",
       description: "Employee ergonomic self-evaluations",
       icon: <AccessibilityNewIcon sx={{ fontSize: 28 }} />,
       stats: { enrolled: stats.sa.enrolled, completed: stats.sa.completed, inProgress: stats.sa.inProgress },
@@ -71,6 +85,10 @@ export default function HomePage() {
       iconColor: "#059669",
     },
   ];
+
+  const filteredMetrics = metrics.filter(
+    (module) => isSuperAdmin || org?.courses?.includes(module.course),
+  );
 
   return (
     <Box>
@@ -86,7 +104,7 @@ export default function HomePage() {
         ))}
       </Grid>
       <Grid container spacing={{ xs: 2, md: 3 }}>
-        {metrics.map((module, idx) => {
+        {filteredMetrics.map((module, idx) => {
           const completionRate = module.stats.enrolled > 0
             ? Math.round((module.stats.completed / module.stats.enrolled) * 100)
             : 0;

@@ -30,6 +30,7 @@ import { useMe } from "@/lib/hooks/useMe";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { logout } from "@/lib/redux/slices/authSlice";
 import { emptyApi } from "@/lib/redux/api/emptyApi";
+import { useOrganizationControllerFindOneQuery } from "@/lib/redux/api/generatedApi";
 
 export const DRAWER_WIDTH = 260;
 
@@ -47,6 +48,11 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
   const { user } = useMe();
   const dispatch = useAppDispatch();
+
+  const { data: org } = useOrganizationControllerFindOneQuery(
+    { id: user?.organization || "" },
+    { skip: !user?.organization },
+  );
 
   const handleLogout = () => {
     dispatch(logout());
@@ -67,18 +73,26 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
     return pathname === path;
   };
 
+  const isSuperAdmin = user?.role === "superAdmin";
+
+  const reportChildren = [
+    { label: "Self Assessment", path: "/reports/self-assessment", course: "Self Assessment" },
+    { label: "Office Ergonomics", path: "/reports/office-ergonomics", course: "Office Ergonomics" },
+  ].filter((child) => isSuperAdmin || org?.courses?.includes(child.course));
+
   const navItems = [
     { label: "Home", icon: <HomeRoundedIcon />, path: "/" },
-    {
-      label: "Reports",
-      icon: <BarChartRoundedIcon />,
-      children: [
-        { label: "Self Assessment", path: "/reports/self-assessment" },
-        { label: "Office Ergonomics", path: "/reports/office-ergonomics" },
-      ],
-    },
+    ...(reportChildren.length > 0
+      ? [
+        {
+          label: "Reports",
+          icon: <BarChartRoundedIcon />,
+          children: reportChildren,
+        },
+      ]
+      : []),
     { label: "Employees", icon: <PeopleRoundedIcon />, path: "/employees" },
-    ...(user?.role === "superAdmin"
+    ...(isSuperAdmin
       ? [{ label: "Organizations", icon: <BusinessRoundedIcon />, path: "/organizations" }]
       : []),
   ];
@@ -104,7 +118,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             maxWidth: 160,
             height: "auto",
             objectFit: "contain",
-            mx: 'auto'
+            mx: "auto",
           }}
         />
       </Box>
@@ -112,14 +126,24 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       <Divider sx={{ borderColor: alpha("#fff", 0.06), mx: 2 }} />
 
       <Box sx={{ px: 1.5, pt: 2 }}>
-        <Typography sx={{ px: 1.5, mb: 1, fontSize: "0.65rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#475569" }}>
+        <Typography
+          sx={{
+            px: 1.5,
+            mb: 1,
+            fontSize: "0.65rem",
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#475569",
+          }}
+        >
           Navigation
         </Typography>
       </Box>
 
       <List sx={{ px: 1.5, pt: 0 }}>
         {navItems.map((item) => {
-          if (item.children) {
+          if ("children" in item && item.children) {
             const isParentActive = pathname.includes("/reports");
             return (
               <React.Fragment key={item.label}>
@@ -136,14 +160,23 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                       transition: "all 0.15s ease",
                     }}
                   >
-                    <ListItemIcon sx={{ color: "inherit", minWidth: 36, "& svg": { fontSize: "1.25rem" } }}>
+                    <ListItemIcon
+                      sx={{ color: "inherit", minWidth: 36, "& svg": { fontSize: "1.25rem" } }}
+                    >
                       {item.icon}
                     </ListItemIcon>
                     <ListItemText
                       primary={item.label}
-                      primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: isParentActive ? 600 : 500 }}
+                      primaryTypographyProps={{
+                        fontSize: "0.85rem",
+                        fontWeight: isParentActive ? 600 : 500,
+                      }}
                     />
-                    {reportsOpen ? <ExpandLess sx={{ fontSize: "1.1rem" }} /> : <ExpandMore sx={{ fontSize: "1.1rem" }} />}
+                    {reportsOpen ? (
+                      <ExpandLess sx={{ fontSize: "1.1rem" }} />
+                    ) : (
+                      <ExpandMore sx={{ fontSize: "1.1rem" }} />
+                    )}
                   </ListItemButton>
                 </ListItem>
                 <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
@@ -170,7 +203,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                           </ListItemIcon>
                           <ListItemText
                             primary={child.label}
-                            primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: isChildActive ? 600 : 400 }}
+                            primaryTypographyProps={{
+                              fontSize: "0.8rem",
+                              fontWeight: isChildActive ? 600 : 400,
+                            }}
                           />
                         </ListItemButton>
                       );
@@ -196,12 +232,17 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                   transition: "all 0.15s ease",
                 }}
               >
-                <ListItemIcon sx={{ color: "inherit", minWidth: 36, "& svg": { fontSize: "1.25rem" } }}>
+                <ListItemIcon
+                  sx={{ color: "inherit", minWidth: 36, "& svg": { fontSize: "1.25rem" } }}
+                >
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.label}
-                  primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: active ? 600 : 500 }}
+                  primaryTypographyProps={{
+                    fontSize: "0.85rem",
+                    fontWeight: active ? 600 : 500,
+                  }}
                 />
               </ListItemButton>
             </ListItem>
@@ -239,7 +280,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             {userInitials}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#e2e8f0", lineHeight: 1.3 }} noWrap>
+            <Typography
+              sx={{ fontSize: "0.8rem", fontWeight: 600, color: "#e2e8f0", lineHeight: 1.3 }}
+              noWrap
+            >
               {userDisplayName}
             </Typography>
             <Typography sx={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.3 }} noWrap>
