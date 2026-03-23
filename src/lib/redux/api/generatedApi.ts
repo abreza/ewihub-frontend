@@ -802,6 +802,7 @@ export type TrainingRo = {
   completedDate?: string;
   /** Course-specific data */
   courseData?: SelfAssessmentCourseDataRo | OfficeErgonomicsCourseDataRo;
+  followUpStatus?: string | null;
 };
 export type EmployeeDetailRo = {
   /** Employee ID */
@@ -891,6 +892,8 @@ export type CourseReportRowRo = {
   completedDate?: string;
   /** Course-specific result extracted from courseData */
   result?: string;
+  followUpStatus?: string | null;
+  trainingId?: string | null;
 };
 export type PaginatedCourseReportRo = {
   data: CourseReportRowRo[];
@@ -1012,6 +1015,7 @@ export type AddTrainingDto = {
   completedDate?: string;
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
+  followUpStatus?: string;
 };
 export type UpdateTrainingDto = {
   /** Training status */
@@ -1022,6 +1026,7 @@ export type UpdateTrainingDto = {
   completedDate?: string;
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
+  followUpStatus?: string;
 };
 export type LmsPayloadDto = {
   /** Learner identifier */
@@ -1064,6 +1069,8 @@ export type OrganizationDetailRo = {
   users: UserRo[];
   /** Departments */
   departments: string[];
+  enableFollowUpStatus: boolean;
+  followUpStatuses: string[];
   /** Creation timestamp */
   createdAt: string;
   /** Update timestamp */
@@ -1084,6 +1091,8 @@ export type CreateOrganizationDto = {
   enableDepartments?: boolean;
   /** Whether organization is active */
   active?: boolean;
+  enableFollowUpStatus?: boolean;
+  followUpStatuses?: string[];
 };
 export type OrganizationListItemRo = {
   /** Organization ID */
@@ -1102,6 +1111,8 @@ export type OrganizationListItemRo = {
   enableDepartments: boolean;
   /** Is active */
   active: boolean;
+  enableFollowUpStatus: boolean;
+  followUpStatuses: string[];
 };
 export type UpdateOrganizationDto = {
   /** Organization full name */
@@ -1118,6 +1129,8 @@ export type UpdateOrganizationDto = {
   enableDepartments?: boolean;
   /** Whether organization is active */
   active?: boolean;
+  enableFollowUpStatus?: boolean;
+  followUpStatuses?: string[];
 };
 export type AddOrgUserDto = {
   /** First name */

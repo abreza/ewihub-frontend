@@ -18,6 +18,7 @@ import {
   useEmployeeControllerGetStatsQuery,
   useEmployeeControllerGetBodyAggregationQuery,
   useEmployeeControllerGetChartAggregationQuery,
+  useOrganizationControllerFindOneQuery,
 } from "@/lib/redux/api/generatedApi";
 import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
 import { STATUS_CONFIG, DEFAULT_STATUS_STYLE } from "@/constants";
@@ -29,6 +30,8 @@ import InsightCard from "@/components/molecules/InsightCard";
 import PaginationBar from "@/components/molecules/PaginationBar";
 import TabbedDonutChart, { ChartTab } from "@/components/organisms/TabbedDonutChart";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
+import FollowUpStatusSelect from "@/components/molecules/FollowUpStatusSelect";
+import { useMe } from "@/lib/hooks/useMe";
 
 const FILTER_OPTIONS = ["All", "Pass", "Action Needed", "Assessment", "In Progress"];
 const FILTER_STATUS_MAP: Record<string, string | undefined> = {
@@ -39,20 +42,17 @@ const FILTER_STATUS_MAP: Record<string, string | undefined> = {
   "In Progress": "pending",
 };
 
-// Colors for pie chart segments (matches original EWI Hub)
 const CHART_COLORS = [
   "#f56954", "#00a65a", "#f39c12", "#00c0ef", "#3c8dbc",
   "#d2d6de", "#605ca8", "#ff851b", "#39cccc", "#001f3f",
   "#D81B60", "#e83e8c",
 ];
 
-// Truncate long labels for better chart readability
 function truncateLabel(label: string, maxLen = 50): string {
   if (label.length <= maxLen) return label;
   return label.substring(0, maxLen - 3) + "...";
 }
 
-// Process chart data: take top N items and group rest into "Other"
 function processChartData(
   data: Record<string, number>,
   maxItems = 5,
@@ -131,6 +131,12 @@ export default function SelfAssessmentPage() {
     useEmployeeControllerGetChartAggregationQuery({
       course: "Self Assessment",
     });
+
+  const { user } = useMe();
+  const { data: org } = useOrganizationControllerFindOneQuery(
+    { id: user?.organization || "" },
+    { skip: !user?.organization },
+  );
 
   const meta = reportResponse?.meta;
   const totalPages = meta?.totalPages ?? 1;
@@ -341,6 +347,7 @@ export default function SelfAssessmentPage() {
                       </TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Result</TableCell>
+                      {org?.enableFollowUpStatus && <TableCell>Follow-Up</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -365,6 +372,20 @@ export default function SelfAssessmentPage() {
                               {row.result}
                             </Typography>
                           </TableCell>
+                          {org?.enableFollowUpStatus && (
+                            <TableCell>
+                              {row.trainingId ? (
+                                <FollowUpStatusSelect
+                                  employeeId={row.id}
+                                  trainingId={row.trainingId}
+                                  currentStatus={row.followUpStatus}
+                                  options={org.followUpStatuses}
+                                />
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">—</Typography>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}

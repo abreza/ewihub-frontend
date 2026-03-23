@@ -30,6 +30,7 @@ import OrgFormFields, { type OrgFormValues } from "@/components/organisms/OrgFor
 import ConfirmDialog from "@/components/molecules/ConfirmDialog";
 import ApiKeyDisplay from "@/components/molecules/ApiKeyDisplay";
 import { Tooltip } from "@mui/material";
+import { DEFAULT_FOLLOW_UP_STATUSES } from "@/constants";
 
 const EMPTY_FORM: OrgFormValues = {
   name: "",
@@ -37,6 +38,8 @@ const EMPTY_FORM: OrgFormValues = {
   notes: "",
   courses: [],
   enableDepartments: false,
+  enableFollowUpStatus: false,
+  followUpStatuses: [...DEFAULT_FOLLOW_UP_STATUSES],
   active: true,
 };
 
@@ -71,6 +74,10 @@ export default function OrganizationDetailPage() {
         notes: org.notes || "",
         courses: org.courses,
         enableDepartments: org.enableDepartments,
+        enableFollowUpStatus: org.enableFollowUpStatus,
+        followUpStatuses: org.followUpStatuses?.length
+          ? org.followUpStatuses
+          : [...DEFAULT_FOLLOW_UP_STATUSES],
         active: org.active,
       });
     }
@@ -84,6 +91,8 @@ export default function OrganizationDetailPage() {
       form.notes !== (org.notes || "") ||
       JSON.stringify(form.courses) !== JSON.stringify(org.courses) ||
       form.enableDepartments !== org.enableDepartments ||
+      form.enableFollowUpStatus !== org.enableFollowUpStatus ||
+      JSON.stringify(form.followUpStatuses) !== JSON.stringify(org.followUpStatuses) ||
       form.active !== org.active
     );
   }, [form, org]);
@@ -127,6 +136,8 @@ export default function OrganizationDetailPage() {
           notes: form.notes || undefined,
           courses: form.courses,
           enableDepartments: form.enableDepartments,
+          enableFollowUpStatus: form.enableFollowUpStatus,
+          followUpStatuses: form.followUpStatuses,
           active: form.active,
         },
       }).unwrap();

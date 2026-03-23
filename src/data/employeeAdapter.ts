@@ -84,11 +84,13 @@ export function toUIEmployees(list: EmployeeListItemRo[]): UIEmployee[] {
 }
 
 export interface UITraining {
+  trainingId: string;
   date: string;
   training: string;
   result: UIStatus;
   startedDate: string | undefined;
   completedDate: string | undefined;
+  followUpStatus: string | null;
 }
 
 export interface UIDemographic {
@@ -102,6 +104,7 @@ export interface UIDemographic {
 }
 
 export interface UISelfAssessmentDetail {
+  trainingId: string;
   started: string;
   completed: string;
   demographic: UIDemographic;
@@ -111,12 +114,15 @@ export interface UISelfAssessmentDetail {
   issues: string;
   result: string;
   bodyData: Record<string, number>;
+  followUpStatus: string | null;
 }
 
 export interface UITimelineEntry {
   type: string;
+  trainingId: string;
   started: string;
   completed: string;
+  followUpStatus: string | null;
   details?: {
     demographic: UIDemographic;
     discomforts: string;
@@ -151,7 +157,12 @@ function formatDate(dateStr: string | null | undefined): string {
 function isSelfAssessmentData(
   courseData: any
 ): courseData is SelfAssessmentCourseDataRo {
-  return courseData && ("demographic" in courseData || "discomforts" in courseData || "bodyPartsDiscomfort" in courseData);
+  return (
+    courseData &&
+    ("demographic" in courseData ||
+      "discomforts" in courseData ||
+      "bodyPartsDiscomfort" in courseData)
+  );
 }
 
 function buildDemographic(
@@ -191,11 +202,13 @@ function buildIssuesString(
   issues: SelfAssessmentCourseDataRo["issues"] | undefined | null
 ): string {
   if (!issues) return "No issues";
+
   const parts: string[] = [];
   if (issues.recommendations?.length) parts.push(...issues.recommendations);
   if (issues.actionItems?.length) parts.push(...issues.actionItems);
   if (issues.suggestions?.length) parts.push(...issues.suggestions);
   if (issues.other?.length) parts.push(...issues.other);
+
   if (parts.length === 0) {
     if (issues.raw) return issues.raw.trim();
     return "No issues";
@@ -221,6 +234,7 @@ function buildSADetail(
   cd: SelfAssessmentCourseDataRo
 ): UISelfAssessmentDetail {
   return {
+    trainingId: t.id,
     started: formatDate(t.startedDate),
     completed: formatDate(t.completedDate),
     demographic: buildDemographic(cd.demographic),
@@ -230,41 +244,52 @@ function buildSADetail(
     issues: buildIssuesString(cd.issues),
     result: cd.result || cd.issues?.result || "-",
     bodyData: buildBodyData(cd.bodyPartsDiscomfort),
+    followUpStatus: (t as any).followUpStatus ?? null,
   };
 }
 
 export function toUIEmployeeDetail(
   emp: EmployeeDetailRo
 ): UIEmployeeDetail {
-  const oeTraining = emp.trainings.find((t) => t.course === "Office Ergonomics");
-  const saTraining = emp.trainings.find((t) => t.course === "Self Assessment");
+  const oeTraining = emp.trainings.find(
+    (t) => t.course === "Office Ergonomics"
+  );
+  const saTraining = emp.trainings.find(
+    (t) => t.course === "Self Assessment"
+  );
 
   const uiTrainings: UITraining[] = emp.trainings.map((t) => ({
+    trainingId: t.id,
     date: t.completedDate || t.startedDate || "-",
     training: t.course,
     result: mapStatus(t.course, t.status),
     startedDate: t.startedDate,
     completedDate: t.completedDate,
+    followUpStatus: (t as any).followUpStatus ?? null,
   }));
 
   let selfAssessmentDetail: UISelfAssessmentDetail | null = null;
-  if (saTraining && saTraining.courseData && isSelfAssessmentData(saTraining.courseData)) {
+  if (
+    saTraining &&
+    saTraining.courseData &&
+    isSelfAssessmentData(saTraining.courseData)
+  ) {
     selfAssessmentDetail = buildSADetail(saTraining, saTraining.courseData);
   }
 
   const dateMap = new Map<string, UITimelineEntry[]>();
-
   for (const t of emp.trainings) {
     const dateKey = t.completedDate || t.startedDate || "Unknown";
-
     if (!dateMap.has(dateKey)) {
       dateMap.set(dateKey, []);
     }
 
     const entry: UITimelineEntry = {
       type: t.course,
+      trainingId: t.id,
       started: formatDate(t.startedDate),
       completed: formatDate(t.completedDate),
+      followUpStatus: (t as any).followUpStatus ?? null,
     };
 
     if (
@@ -328,10 +353,16 @@ export interface UIProgramStats {
 }
 
 export function toUIProgramStats(stats: ProgramStatsRo): UIProgramStats {
-  const oeCourse = stats.courses.find((c) => c.course === "Office Ergonomics");
-  const saCourse = stats.courses.find((c) => c.course === "Self Assessment");
-
-  const saBreakdown = (saCourse?.statusBreakdown || {}) as Record<string, number>;
+  const oeCourse = stats.courses.find(
+    (c) => c.course === "Office Ergonomics"
+  );
+  const saCourse = stats.courses.find(
+    (c) => c.course === "Self Assessment"
+  );
+  const saBreakdown = (saCourse?.statusBreakdown || {}) as Record<
+    string,
+    number
+  >;
 
   return {
     totalEmployees: stats.totalEmployees,
@@ -374,20 +405,24 @@ export function toOEReportRow(row: CourseReportRowRo): OEReportRow {
 export interface SAReportRow {
   name: string;
   id: string;
+  trainingId: string | null;
   start: string;
   end: string;
   status: UIStatus;
   result: string;
+  followUpStatus: string | null;
 }
 
 export function toSAReportRow(row: CourseReportRowRo): SAReportRow {
   return {
     name: row.name,
     id: row.employeeId,
+    trainingId: (row as any).trainingId ?? null,
     start: row.startedDate || "-",
     end: row.completedDate || "-",
     status: mapSelfAssessmentStatus(row.status),
     result: row.result || "-",
+    followUpStatus: (row as any).followUpStatus ?? null,
   };
 }
 

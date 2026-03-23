@@ -4,8 +4,9 @@ import React from "react";
 import {
   TextField, Stack, Box, Chip, FormControlLabel, Switch, Typography,
   FormControl, InputLabel, Select, MenuItem,
+  Button,
 } from "@mui/material";
-import { COURSE_OPTIONS } from "@/constants";
+import { COURSE_OPTIONS, DEFAULT_FOLLOW_UP_STATUSES } from "@/constants";
 
 export interface OrgFormValues {
   name: string;
@@ -13,6 +14,8 @@ export interface OrgFormValues {
   notes: string;
   courses: string[];
   enableDepartments: boolean;
+  enableFollowUpStatus: boolean;
+  followUpStatuses: string[];
   active: boolean;
 }
 
@@ -99,6 +102,65 @@ const OrgFormFields = ({
         }
         label={<Typography variant="body2">Active</Typography>}
       />
+      <FormControlLabel
+        control={
+          <Switch
+            checked={values.enableFollowUpStatus}
+            onChange={(e) => onChange("enableFollowUpStatus", e.target.checked)}
+            size="small"
+          />
+        }
+        label={<Typography variant="body2">Enable Follow-Up Status</Typography>}
+      />
+
+      {values.enableFollowUpStatus && (
+        <Box>
+          <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: "text.secondary" }}>
+            Follow-Up Status Options
+          </Typography>
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 1.5 }}>
+            {values.followUpStatuses.map((status, i) => (
+              <Chip
+                key={i}
+                label={status}
+                size="small"
+                onDelete={() => {
+                  const updated = values.followUpStatuses.filter((_, idx) => idx !== i);
+                  onChange("followUpStatuses", updated);
+                }}
+                sx={{ borderRadius: "6px", fontWeight: 500, fontSize: "0.75rem" }}
+              />
+            ))}
+          </Box>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            <TextField
+              size="small"
+              placeholder="Add new status..."
+              id="new-follow-up-status"
+              sx={{ flex: 1 }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const input = e.target as HTMLInputElement;
+                  const val = input.value.trim();
+                  if (val && !values.followUpStatuses.includes(val)) {
+                    onChange("followUpStatuses", [...values.followUpStatuses, val]);
+                    input.value = "";
+                  }
+                }
+              }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => onChange("followUpStatuses", [...DEFAULT_FOLLOW_UP_STATUSES])}
+              sx={{ textTransform: "none", fontSize: "0.75rem", whiteSpace: "nowrap" }}
+            >
+              Reset to Defaults
+            </Button>
+          </Box>
+        </Box>
+      )}
     </Box>
   </Stack>
 );

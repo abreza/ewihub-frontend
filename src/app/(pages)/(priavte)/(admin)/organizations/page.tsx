@@ -23,6 +23,7 @@ import ConfirmDialog from "@/components/molecules/ConfirmDialog";
 import ApiKeyDisplay from "@/components/molecules/ApiKeyDisplay";
 import OrgFormFields, { type OrgFormValues } from "@/components/organisms/OrgFormFields";
 import { IconButton, Tooltip } from "@mui/material";
+import { DEFAULT_FOLLOW_UP_STATUSES } from "@/constants";
 
 const EMPTY_FORM: OrgFormValues = {
   name: "",
@@ -30,6 +31,8 @@ const EMPTY_FORM: OrgFormValues = {
   notes: "",
   courses: [],
   enableDepartments: false,
+  enableFollowUpStatus: false,
+  followUpStatuses: [...DEFAULT_FOLLOW_UP_STATUSES],
   active: true,
 };
 
