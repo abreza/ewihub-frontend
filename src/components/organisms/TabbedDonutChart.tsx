@@ -7,7 +7,6 @@ import {
   Button,
   alpha,
   CircularProgress,
-  Chip,
 } from "@mui/material";
 import DonutChart, { DonutSegment } from "@/components/organisms/DonutChart";
 
@@ -18,6 +17,7 @@ export interface ChartTab {
   centerValue: string;
   centerLabel: string;
   isLoading?: boolean;
+  legendValueType?: "count" | "percentage";
 }
 
 interface TabbedDonutChartProps {
@@ -116,6 +116,7 @@ const TabbedDonutChart = ({
             segments={currentTab.segments}
             centerValue={currentTab.centerValue}
             centerLabel={currentTab.centerLabel}
+            legendValueType={currentTab.legendValueType}
           />
         )}
       </Box>

@@ -47,11 +47,6 @@ const CHART_COLORS = [
   "#D81B60", "#e83e8c",
 ];
 
-function truncateLabel(label: string, maxLen = 50): string {
-  if (label.length <= maxLen) return label;
-  return label.substring(0, maxLen - 3) + "...";
-}
-
 function processChartData(
   data: Record<string, number>,
   maxItems = 5,
@@ -63,7 +58,7 @@ function processChartData(
 
   entries.forEach(([key, val], i) => {
     if (i < maxItems) {
-      labels.push(truncateLabel(key));
+      labels.push(key);
       values.push(val);
     } else {
       otherCount += val;
@@ -202,6 +197,7 @@ export default function SelfAssessmentPage() {
         centerValue: String(issuesTotal),
         centerLabel: "Total Issues",
         isLoading: isLoadingChartAgg,
+        legendValueType: "percentage",
       },
       {
         key: "actions",
@@ -210,6 +206,7 @@ export default function SelfAssessmentPage() {
         centerValue: String(actionsTotal),
         centerLabel: "Total Actions",
         isLoading: isLoadingChartAgg,
+        legendValueType: "percentage",
       },
       {
         key: "equipment",
@@ -218,6 +215,7 @@ export default function SelfAssessmentPage() {
         centerValue: String(equipmentTotal),
         centerLabel: "Total Needs",
         isLoading: isLoadingChartAgg,
+        legendValueType: "percentage",
       },
     ];
     return tabs;

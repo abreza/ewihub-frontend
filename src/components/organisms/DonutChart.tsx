@@ -13,11 +13,17 @@ interface DonutChartProps {
   segments: DonutSegment[];
   centerValue: string;
   centerLabel: string;
+  legendValueType?: "count" | "percentage";
 }
 
 const RADIUS = 15.9155;
 
-const DonutChart = ({ segments, centerValue, centerLabel }: DonutChartProps) => {
+const DonutChart = ({
+  segments,
+  centerValue,
+  centerLabel,
+  legendValueType = "count",
+}: DonutChartProps) => {
   const total = segments.reduce((sum, s) => sum + s.value, 0);
 
   const arcs = useMemo(() => {
@@ -97,7 +103,6 @@ const DonutChart = ({ segments, centerValue, centerLabel }: DonutChartProps) => 
         </Box>
       </Box>
 
-      {/* Legend */}
       <Box
         sx={{
           display: "flex",
@@ -123,7 +128,7 @@ const DonutChart = ({ segments, centerValue, centerLabel }: DonutChartProps) => 
               color="text.secondary"
               sx={{ fontSize: { xs: "0.7rem", sm: "0.825rem" } }}
             >
-              {seg.label} ({seg.value})
+              {seg.label} ({legendValueType === "percentage" ? `${Math.round((seg.value / total) * 100)}%` : seg.value})
             </Typography>
           </Box>
         ))}
