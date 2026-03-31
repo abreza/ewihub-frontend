@@ -146,6 +146,7 @@ export interface UIEmployeeDetail {
   officeErgonomics: UIStatus;
   selfAssessment: UIStatus;
   trainings: UITraining[];
+  latestTrainings: UITraining[];
   selfAssessmentDetail: UISelfAssessmentDetail | null;
   timeline: UITimeline[];
 }
@@ -248,15 +249,11 @@ function buildSADetail(
   };
 }
 
-export function toUIEmployeeDetail(
-  emp: EmployeeDetailRo
-): UIEmployeeDetail {
-  const oeTraining = emp.trainings.find(
-    (t) => t.course === "Office Ergonomics"
-  );
-  const saTraining = emp.trainings.find(
-    (t) => t.course === "Self Assessment"
-  );
+export function toUIEmployeeDetail(emp: EmployeeDetailRo): UIEmployeeDetail {
+  const reversedTrainings = [...emp.trainings].reverse();
+
+  const oeTraining = reversedTrainings.find((t) => t.course === "Office Ergonomics");
+  const saTraining = reversedTrainings.find((t) => t.course === "Self Assessment");
 
   const uiTrainings: UITraining[] = emp.trainings.map((t) => ({
     trainingId: t.id,
@@ -267,6 +264,24 @@ export function toUIEmployeeDetail(
     completedDate: t.completedDate,
     followUpStatus: (t as any).followUpStatus ?? null,
   }));
+
+  const latestTrainings: UITraining[] = [];
+  const seenCourses = new Set<string>();
+
+  for (const t of reversedTrainings) {
+    if (!seenCourses.has(t.course)) {
+      seenCourses.add(t.course);
+      latestTrainings.push({
+        trainingId: t.id,
+        date: t.completedDate || t.startedDate || "-",
+        training: t.course,
+        result: mapStatus(t.course, t.status),
+        startedDate: t.startedDate,
+        completedDate: t.completedDate,
+        followUpStatus: (t as any).followUpStatus ?? null,
+      });
+    }
+  }
 
   let selfAssessmentDetail: UISelfAssessmentDetail | null = null;
   if (
@@ -328,6 +343,7 @@ export function toUIEmployeeDetail(
       ? mapSelfAssessmentStatus(saTraining.status)
       : "Not Taken",
     trainings: uiTrainings,
+    latestTrainings,
     selfAssessmentDetail,
     timeline,
   };

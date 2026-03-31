@@ -141,7 +141,6 @@ export default function EmployeeDetailPage() {
         </Box>
 
         <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>
-          {/* ── Summary Tab ── */}
           {activeTab === 0 && (
             <Box>
               <Typography variant="h6" sx={{ mb: 2, fontSize: "1rem" }}>Training Overview</Typography>
@@ -156,7 +155,7 @@ export default function EmployeeDetailPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {employee.trainings.map((t, i) => (
+                    {employee.latestTrainings.map((t, i) => (
                       <TableRow key={i} hover>
                         <TableCell>{t.date}</TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>{t.training}</TableCell>
@@ -242,7 +241,6 @@ export default function EmployeeDetailPage() {
             </Box>
           )}
 
-          {/* ── Timeline Tab ── */}
           {activeTab === 2 && (
             <Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap", gap: 1.5 }}>
