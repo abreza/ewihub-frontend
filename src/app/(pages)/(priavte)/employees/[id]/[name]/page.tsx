@@ -97,10 +97,20 @@ export default function EmployeeDetailPage() {
               <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: "1.1rem", sm: "1.5rem" } }}>
                 {employee.name}
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25, mb: showFollowUp ? 1 : 0 }}>
                 <EmailRoundedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
                 <Typography variant="body2" color="text.secondary" noWrap>{employee.email}</Typography>
               </Box>
+              {showFollowUp && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary">Follow-Up Status:</Typography>
+                  <FollowUpStatusSelect
+                    employeeId={employee.id}
+                    currentStatus={employee.followUpStatus}
+                    options={followUpOptions}
+                  />
+                </Box>
+              )}
             </Box>
             <Box sx={{ display: "flex", gap: 2, pb: 0.5, flexWrap: "wrap" }}>
               <Box sx={{ textAlign: "center" }}>
@@ -151,7 +161,6 @@ export default function EmployeeDetailPage() {
                       <TableCell>Date</TableCell>
                       <TableCell>Training</TableCell>
                       <TableCell>Result</TableCell>
-                      {showFollowUp && <TableCell>Follow-Up</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -160,20 +169,6 @@ export default function EmployeeDetailPage() {
                         <TableCell>{t.date}</TableCell>
                         <TableCell sx={{ fontWeight: 500 }}>{t.training}</TableCell>
                         <TableCell><StatusChip status={t.result} /></TableCell>
-                        {showFollowUp && (
-                          <TableCell>
-                            {t.training === "Self Assessment" && t.trainingId ? (
-                              <FollowUpStatusSelect
-                                employeeId={employeeId}
-                                trainingId={t.trainingId}
-                                currentStatus={t.followUpStatus}
-                                options={followUpOptions}
-                              />
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">—</Typography>
-                            )}
-                          </TableCell>
-                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -183,9 +178,6 @@ export default function EmployeeDetailPage() {
                 <SelfAssessmentSection
                   detail={employee.selfAssessmentDetail}
                   resultLabel={resultLabel}
-                  employeeId={employeeId}
-                  showFollowUp={showFollowUp}
-                  followUpOptions={followUpOptions}
                 />
               )}
             </Box>
@@ -204,7 +196,6 @@ export default function EmployeeDetailPage() {
                       <TableCell>Started</TableCell>
                       <TableCell>Completed</TableCell>
                       <TableCell>Result</TableCell>
-                      {showFollowUp && <TableCell>Follow-Up</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -214,20 +205,6 @@ export default function EmployeeDetailPage() {
                         <TableCell>{t.startedDate || "-"}</TableCell>
                         <TableCell>{t.completedDate || "-"}</TableCell>
                         <TableCell><StatusChip status={t.result} /></TableCell>
-                        {showFollowUp && (
-                          <TableCell>
-                            {t.training === "Self Assessment" && t.trainingId ? (
-                              <FollowUpStatusSelect
-                                employeeId={employeeId}
-                                trainingId={t.trainingId}
-                                currentStatus={t.followUpStatus}
-                                options={followUpOptions}
-                              />
-                            ) : (
-                              <Typography variant="body2" color="text.secondary">—</Typography>
-                            )}
-                          </TableCell>
-                        )}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -285,14 +262,6 @@ export default function EmployeeDetailPage() {
                             <Typography variant="body1" sx={{ color: "primary.main", fontWeight: 600 }}>
                               {entry.type}
                             </Typography>
-                            {showFollowUp && entry.type === "Self Assessment" && entry.trainingId && (
-                              <FollowUpStatusSelect
-                                employeeId={employeeId}
-                                trainingId={entry.trainingId}
-                                currentStatus={entry.followUpStatus}
-                                options={followUpOptions}
-                              />
-                            )}
                           </Box>
 
                           {entry.details ? (

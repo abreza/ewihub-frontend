@@ -370,17 +370,12 @@ export default function SelfAssessmentPage() {
                             </Typography>
                           </TableCell>
                           {org?.enableFollowUpStatus && (
-                            <TableCell>
-                              {row.trainingId ? (
-                                <FollowUpStatusSelect
-                                  employeeId={row.id}
-                                  trainingId={row.trainingId}
-                                  currentStatus={row.followUpStatus}
-                                  options={org.followUpStatuses}
-                                />
-                              ) : (
-                                <Typography variant="body2" color="text.secondary">—</Typography>
-                              )}
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <FollowUpStatusSelect
+                                employeeId={row.id}
+                                currentStatus={row.followUpStatus}
+                                options={org.followUpStatuses}
+                              />
                             </TableCell>
                           )}
                         </TableRow>
@@ -388,7 +383,7 @@ export default function SelfAssessmentPage() {
                     })}
                     {!isLoadingReport && rows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} sx={{ textAlign: "center", py: 4 }}>
+                        <TableCell colSpan={6} sx={{ textAlign: "center", py: 4 }}>
                           <Typography variant="body2" color="text.secondary">No data found</Typography>
                         </TableCell>
                       </TableRow>

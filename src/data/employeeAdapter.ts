@@ -90,7 +90,6 @@ export interface UITraining {
   result: UIStatus;
   startedDate: string | undefined;
   completedDate: string | undefined;
-  followUpStatus: string | null;
 }
 
 export interface UIDemographic {
@@ -114,7 +113,6 @@ export interface UISelfAssessmentDetail {
   issues: string;
   result: string;
   bodyData: Record<string, number>;
-  followUpStatus: string | null;
 }
 
 export interface UITimelineEntry {
@@ -122,7 +120,6 @@ export interface UITimelineEntry {
   trainingId: string;
   started: string;
   completed: string;
-  followUpStatus: string | null;
   details?: {
     demographic: UIDemographic;
     discomforts: string;
@@ -143,6 +140,7 @@ export interface UIEmployeeDetail {
   id: string;
   name: string;
   email: string;
+  followUpStatus: string | null;
   officeErgonomics: UIStatus;
   selfAssessment: UIStatus;
   trainings: UITraining[];
@@ -245,7 +243,6 @@ function buildSADetail(
     issues: buildIssuesString(cd.issues),
     result: cd.result || cd.issues?.result || "-",
     bodyData: buildBodyData(cd.bodyPartsDiscomfort),
-    followUpStatus: (t as any).followUpStatus ?? null,
   };
 }
 
@@ -262,7 +259,6 @@ export function toUIEmployeeDetail(emp: EmployeeDetailRo): UIEmployeeDetail {
     result: mapStatus(t.course, t.status),
     startedDate: t.startedDate,
     completedDate: t.completedDate,
-    followUpStatus: (t as any).followUpStatus ?? null,
   }));
 
   const latestTrainings: UITraining[] = [];
@@ -278,7 +274,6 @@ export function toUIEmployeeDetail(emp: EmployeeDetailRo): UIEmployeeDetail {
         result: mapStatus(t.course, t.status),
         startedDate: t.startedDate,
         completedDate: t.completedDate,
-        followUpStatus: (t as any).followUpStatus ?? null,
       });
     }
   }
@@ -304,7 +299,6 @@ export function toUIEmployeeDetail(emp: EmployeeDetailRo): UIEmployeeDetail {
       trainingId: t.id,
       started: formatDate(t.startedDate),
       completed: formatDate(t.completedDate),
-      followUpStatus: (t as any).followUpStatus ?? null,
     };
 
     if (
@@ -336,6 +330,7 @@ export function toUIEmployeeDetail(emp: EmployeeDetailRo): UIEmployeeDetail {
     id: emp.id,
     name: emp.name,
     email: emp.email,
+    followUpStatus: emp.followUpStatus ?? null,
     officeErgonomics: oeTraining
       ? mapOfficeErgonomicsStatus(oeTraining.status)
       : "Not Taken",
@@ -438,7 +433,7 @@ export function toSAReportRow(row: CourseReportRowRo): SAReportRow {
     end: row.completedDate || "-",
     status: mapSelfAssessmentStatus(row.status),
     result: row.result || "-",
-    followUpStatus: (row as any).followUpStatus ?? null,
+    followUpStatus: row.followUpStatus ?? null,
   };
 }
 

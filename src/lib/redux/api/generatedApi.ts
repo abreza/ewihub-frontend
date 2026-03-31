@@ -1,3 +1,4 @@
+// src/lib/redux/api/generatedApi.ts
 import { emptyApi as api } from "./emptyApi";
 export const addTagTypes = [
   "Users",
@@ -197,6 +198,17 @@ const injectedRtkApi = api
           url: `/api/employees/${queryArg.id}`,
           method: "PATCH",
           body: queryArg.updateEmployeeDto,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+      employeeControllerUpdateFollowUpStatus: build.mutation<
+        EmployeeControllerUpdateFollowUpStatusApiResponse,
+        EmployeeControllerUpdateFollowUpStatusApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/follow-up-status`,
+          method: "PATCH",
+          body: queryArg.body,
         }),
         invalidatesTags: ["Employees"],
       }),
@@ -497,6 +509,14 @@ export type EmployeeControllerUpdateApiResponse =
 export type EmployeeControllerUpdateApiArg = {
   id: string;
   updateEmployeeDto: UpdateEmployeeDto;
+};
+export type EmployeeControllerUpdateFollowUpStatusApiResponse =
+  /** status 200  */ EmployeeDetailRo;
+export type EmployeeControllerUpdateFollowUpStatusApiArg = {
+  id: string;
+  body: {
+    followUpStatus: string;
+  };
 };
 export type EmployeeControllerRemoveApiResponse = unknown;
 export type EmployeeControllerRemoveApiArg = {
@@ -802,7 +822,6 @@ export type TrainingRo = {
   completedDate?: string;
   /** Course-specific data */
   courseData?: SelfAssessmentCourseDataRo | OfficeErgonomicsCourseDataRo;
-  followUpStatus?: string | null;
 };
 export type EmployeeDetailRo = {
   /** Employee ID */
@@ -817,6 +836,8 @@ export type EmployeeDetailRo = {
   organization?: string;
   /** Department name */
   department?: string;
+  /** Follow-up status */
+  followUpStatus?: string | null;
   /** All trainings */
   trainings: TrainingRo[];
   /** Creation timestamp */
@@ -831,6 +852,8 @@ export type CreateEmployeeDto = {
   email: string;
   /** Legacy profile URL */
   oldProfileUrl?: string;
+  /** Follow-up status */
+  followUpStatus?: string;
 };
 export type TrainingStatusRo = {
   /** Course name */
@@ -847,6 +870,8 @@ export type EmployeeListItemRo = {
   email: string;
   /** Legacy profile URL */
   oldProfileUrl?: string;
+  /** Follow-up status */
+  followUpStatus?: string | null;
   /** Status per course */
   trainingStatuses: TrainingStatusRo[];
 };
@@ -892,7 +917,9 @@ export type CourseReportRowRo = {
   completedDate?: string;
   /** Course-specific result extracted from courseData */
   result?: string;
+  /** Employee Follow-up status */
   followUpStatus?: string | null;
+  /** Training ID */
   trainingId?: string | null;
 };
 export type PaginatedCourseReportRo = {
@@ -934,6 +961,8 @@ export type UpdateEmployeeDto = {
   email?: string;
   /** Legacy profile URL */
   oldProfileUrl?: string;
+  /** Follow-up status */
+  followUpStatus?: string;
 };
 export type DemographicDto = {
   age?: string;
@@ -1015,7 +1044,6 @@ export type AddTrainingDto = {
   completedDate?: string;
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
-  followUpStatus?: string;
 };
 export type UpdateTrainingDto = {
   /** Training status */
@@ -1026,7 +1054,6 @@ export type UpdateTrainingDto = {
   completedDate?: string;
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
-  followUpStatus?: string;
 };
 export type LmsPayloadDto = {
   /** Learner identifier */
@@ -1206,6 +1233,7 @@ export const {
   useEmployeeControllerFindOneQuery,
   useLazyEmployeeControllerFindOneQuery,
   useEmployeeControllerUpdateMutation,
+  useEmployeeControllerUpdateFollowUpStatusMutation,
   useEmployeeControllerRemoveMutation,
   useEmployeeControllerAddTrainingMutation,
   useEmployeeControllerUpdateTrainingMutation,
