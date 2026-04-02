@@ -46,7 +46,6 @@ const PaginationBar = ({
         gap: 1,
       }}
     >
-      {/* Left: info + page-size selector */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Typography variant="body2" color="text.secondary">
           Page {currentPage} of {totalPages}
@@ -65,8 +64,6 @@ const PaginationBar = ({
           ))}
         </Select>
       </Box>
-
-      {/* Right: page buttons */}
       <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
         <Button
           size="small"

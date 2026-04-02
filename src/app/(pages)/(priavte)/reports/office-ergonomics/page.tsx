@@ -97,7 +97,6 @@ export default function OfficeErgonomicsPage() {
       />
 
       <Grid container spacing={{ xs: 2, md: 3 }}>
-        {/* Donut chart */}
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ height: "100%" }}>
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
@@ -126,7 +125,6 @@ export default function OfficeErgonomicsPage() {
           </Card>
         </Grid>
 
-        {/* Insight cards */}
         <Grid size={{ xs: 12, md: 5 }}>
           <Grid container spacing={1.5} sx={{ height: "100%" }}>
             {insights.map((item, i) => (
@@ -137,7 +135,6 @@ export default function OfficeErgonomicsPage() {
           </Grid>
         </Grid>
 
-        {/* Data table */}
         <Grid size={{ xs: 12 }}>
           <Card>
             <Box

@@ -1,4 +1,3 @@
-// src/lib/redux/api/generatedApi.ts
 import { emptyApi as api } from "./emptyApi";
 export const addTagTypes = [
   "Users",
@@ -201,17 +200,6 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Employees"],
       }),
-      employeeControllerUpdateFollowUpStatus: build.mutation<
-        EmployeeControllerUpdateFollowUpStatusApiResponse,
-        EmployeeControllerUpdateFollowUpStatusApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/api/employees/${queryArg.id}/follow-up-status`,
-          method: "PATCH",
-          body: queryArg.body,
-        }),
-        invalidatesTags: ["Employees"],
-      }),
       employeeControllerRemove: build.mutation<
         EmployeeControllerRemoveApiResponse,
         EmployeeControllerRemoveApiArg
@@ -219,6 +207,16 @@ const injectedRtkApi = api
         query: (queryArg) => ({
           url: `/api/employees/${queryArg.id}`,
           method: "DELETE",
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+      employeeControllerUpdateFollowUpStatus: build.mutation<
+        EmployeeControllerUpdateFollowUpStatusApiResponse,
+        EmployeeControllerUpdateFollowUpStatusApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/follow-up-status`,
+          method: "PATCH",
         }),
         invalidatesTags: ["Employees"],
       }),
@@ -510,16 +508,13 @@ export type EmployeeControllerUpdateApiArg = {
   id: string;
   updateEmployeeDto: UpdateEmployeeDto;
 };
+export type EmployeeControllerRemoveApiResponse = unknown;
+export type EmployeeControllerRemoveApiArg = {
+  id: string;
+};
 export type EmployeeControllerUpdateFollowUpStatusApiResponse =
   /** status 200  */ EmployeeDetailRo;
 export type EmployeeControllerUpdateFollowUpStatusApiArg = {
-  id: string;
-  body: {
-    followUpStatus: string;
-  };
-};
-export type EmployeeControllerRemoveApiResponse = unknown;
-export type EmployeeControllerRemoveApiArg = {
   id: string;
 };
 export type EmployeeControllerAddTrainingApiResponse =
@@ -540,11 +535,7 @@ export type EmployeeControllerRemoveTrainingApiArg = {
   id: string;
   trainingId: string;
 };
-export type EmployeeControllerReceiveLmsDataApiResponse =
-  /** status 200 Data received successfully */ {
-  success?: boolean;
-  message?: string;
-};
+export type EmployeeControllerReceiveLmsDataApiResponse = unknown;
 export type EmployeeControllerReceiveLmsDataApiArg = {
   lmsPayloadDto: LmsPayloadDto;
 };
@@ -837,7 +828,7 @@ export type EmployeeDetailRo = {
   /** Department name */
   department?: string;
   /** Follow-up status */
-  followUpStatus?: string | null;
+  followUpStatus?: string;
   /** All trainings */
   trainings: TrainingRo[];
   /** Creation timestamp */
@@ -871,7 +862,7 @@ export type EmployeeListItemRo = {
   /** Legacy profile URL */
   oldProfileUrl?: string;
   /** Follow-up status */
-  followUpStatus?: string | null;
+  followUpStatus?: string;
   /** Status per course */
   trainingStatuses: TrainingStatusRo[];
 };
@@ -918,9 +909,9 @@ export type CourseReportRowRo = {
   /** Course-specific result extracted from courseData */
   result?: string;
   /** Employee Follow-up status */
-  followUpStatus?: string | null;
+  followUpStatus?: string;
   /** Training ID */
-  trainingId?: string | null;
+  trainingId?: string;
 };
 export type PaginatedCourseReportRo = {
   data: CourseReportRowRo[];
@@ -1057,7 +1048,7 @@ export type UpdateTrainingDto = {
 };
 export type LmsPayloadDto = {
   /** Learner identifier */
-  id: string;
+  id?: string;
   /** Learner email */
   email: string;
   /** Learner full name */
@@ -1096,7 +1087,9 @@ export type OrganizationDetailRo = {
   users: UserRo[];
   /** Departments */
   departments: string[];
+  /** Enable follow-up status */
   enableFollowUpStatus: boolean;
+  /** Follow-up status options */
   followUpStatuses: string[];
   /** Creation timestamp */
   createdAt: string;
@@ -1118,7 +1111,9 @@ export type CreateOrganizationDto = {
   enableDepartments?: boolean;
   /** Whether organization is active */
   active?: boolean;
+  /** Enable follow-up status tracking for Self Assessment */
   enableFollowUpStatus?: boolean;
+  /** Custom follow-up status options */
   followUpStatuses?: string[];
 };
 export type OrganizationListItemRo = {
@@ -1138,7 +1133,9 @@ export type OrganizationListItemRo = {
   enableDepartments: boolean;
   /** Is active */
   active: boolean;
+  /** Enable follow-up status */
   enableFollowUpStatus: boolean;
+  /** Follow-up status options */
   followUpStatuses: string[];
 };
 export type UpdateOrganizationDto = {
@@ -1156,7 +1153,9 @@ export type UpdateOrganizationDto = {
   enableDepartments?: boolean;
   /** Whether organization is active */
   active?: boolean;
+  /** Enable follow-up status tracking for Self Assessment */
   enableFollowUpStatus?: boolean;
+  /** Custom follow-up status options */
   followUpStatuses?: string[];
 };
 export type AddOrgUserDto = {
@@ -1233,8 +1232,8 @@ export const {
   useEmployeeControllerFindOneQuery,
   useLazyEmployeeControllerFindOneQuery,
   useEmployeeControllerUpdateMutation,
-  useEmployeeControllerUpdateFollowUpStatusMutation,
   useEmployeeControllerRemoveMutation,
+  useEmployeeControllerUpdateFollowUpStatusMutation,
   useEmployeeControllerAddTrainingMutation,
   useEmployeeControllerUpdateTrainingMutation,
   useEmployeeControllerRemoveTrainingMutation,

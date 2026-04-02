@@ -243,8 +243,6 @@ export default function OrganizationsPage() {
           )}
         </TableContainer>
       </Card>
-
-      {/* Create Dialog */}
       <Dialog open={createOpen} onClose={() => { setCreateOpen(false); resetForm(); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>Add Organization</DialogTitle>
         <DialogContent>
@@ -269,8 +267,6 @@ export default function OrganizationsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

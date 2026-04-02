@@ -189,6 +189,7 @@ export default function SelfAssessmentPage() {
         centerValue: `${passPct}%`,
         centerLabel: "Pass Rate",
         isLoading: !stats,
+        legendValueType: "percentage",
       },
       {
         key: "issues",
