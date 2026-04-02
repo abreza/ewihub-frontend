@@ -252,6 +252,56 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Employees"],
       }),
+      employeeControllerUploadAttachment: build.mutation<
+        EmployeeControllerUploadAttachmentApiResponse,
+        EmployeeControllerUploadAttachmentApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/attachments`,
+          method: "POST",
+          body: queryArg.body,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+      employeeControllerListAttachments: build.query<
+        EmployeeControllerListAttachmentsApiResponse,
+        EmployeeControllerListAttachmentsApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/attachments`,
+        }),
+        providesTags: ["Employees"],
+      }),
+      employeeControllerUploadAttachmentsBulk: build.mutation<
+        EmployeeControllerUploadAttachmentsBulkApiResponse,
+        EmployeeControllerUploadAttachmentsBulkApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/attachments/bulk`,
+          method: "POST",
+          body: queryArg.body,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+      employeeControllerGetAttachment: build.query<
+        EmployeeControllerGetAttachmentApiResponse,
+        EmployeeControllerGetAttachmentApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/attachments/${queryArg.attachmentId}`,
+        }),
+        providesTags: ["Employees"],
+      }),
+      employeeControllerRemoveAttachment: build.mutation<
+        EmployeeControllerRemoveAttachmentApiResponse,
+        EmployeeControllerRemoveAttachmentApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/attachments/${queryArg.attachmentId}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Employees"],
+      }),
       employeeControllerReceiveLmsData: build.mutation<
         EmployeeControllerReceiveLmsDataApiResponse,
         EmployeeControllerReceiveLmsDataApiArg
@@ -535,6 +585,42 @@ export type EmployeeControllerRemoveTrainingApiArg = {
   id: string;
   trainingId: string;
 };
+export type EmployeeControllerUploadAttachmentApiResponse =
+  /** status 201  */ AttachmentRo;
+export type EmployeeControllerUploadAttachmentApiArg = {
+  id: string;
+  /** File to attach (max 10 MB) */
+  body: {
+    file: Blob;
+    /** Optional label */
+    label?: string;
+  };
+};
+export type EmployeeControllerListAttachmentsApiResponse =
+  /** status 200  */ AttachmentWithUrlRo[];
+export type EmployeeControllerListAttachmentsApiArg = {
+  id: string;
+};
+export type EmployeeControllerUploadAttachmentsBulkApiResponse =
+  /** status 201  */ AttachmentRo[];
+export type EmployeeControllerUploadAttachmentsBulkApiArg = {
+  id: string;
+  /** Files to attach (max 10 MB each) */
+  body: {
+    files: Blob[];
+  };
+};
+export type EmployeeControllerGetAttachmentApiResponse =
+  /** status 200  */ AttachmentWithUrlRo;
+export type EmployeeControllerGetAttachmentApiArg = {
+  id: string;
+  attachmentId: string;
+};
+export type EmployeeControllerRemoveAttachmentApiResponse = unknown;
+export type EmployeeControllerRemoveAttachmentApiArg = {
+  id: string;
+  attachmentId: string;
+};
 export type EmployeeControllerReceiveLmsDataApiResponse = unknown;
 export type EmployeeControllerReceiveLmsDataApiArg = {
   lmsPayloadDto: LmsPayloadDto;
@@ -814,6 +900,24 @@ export type TrainingRo = {
   /** Course-specific data */
   courseData?: SelfAssessmentCourseDataRo | OfficeErgonomicsCourseDataRo;
 };
+export type AttachmentRo = {
+  /** Attachment ID */
+  id: string;
+  /** S3 object key */
+  key: string;
+  /** Original file name */
+  originalName: string;
+  /** MIME type */
+  mimeType: string;
+  /** File size in bytes */
+  size: number;
+  /** User-provided label */
+  label?: string;
+  /** User ID of uploader */
+  uploadedBy?: string;
+  /** Upload timestamp */
+  createdAt: string;
+};
 export type EmployeeDetailRo = {
   /** Employee ID */
   id: string;
@@ -831,6 +935,8 @@ export type EmployeeDetailRo = {
   followUpStatus?: string;
   /** All trainings */
   trainings: TrainingRo[];
+  /** File attachments */
+  attachments: AttachmentRo[];
   /** Creation timestamp */
   createdAt: string;
   /** Update timestamp */
@@ -1046,6 +1152,26 @@ export type UpdateTrainingDto = {
   /** Course-specific data payload */
   courseData?: SelfAssessmentCourseDataDto | OfficeErgonomicsCourseDataDto;
 };
+export type AttachmentWithUrlRo = {
+  /** Attachment ID */
+  id: string;
+  /** S3 object key */
+  key: string;
+  /** Original file name */
+  originalName: string;
+  /** MIME type */
+  mimeType: string;
+  /** File size in bytes */
+  size: number;
+  /** User-provided label */
+  label?: string;
+  /** User ID of uploader */
+  uploadedBy?: string;
+  /** Upload timestamp */
+  createdAt: string;
+  /** Pre-signed download URL (temporary) */
+  url: string;
+};
 export type LmsPayloadDto = {
   /** Learner identifier */
   id?: string;
@@ -1237,6 +1363,13 @@ export const {
   useEmployeeControllerAddTrainingMutation,
   useEmployeeControllerUpdateTrainingMutation,
   useEmployeeControllerRemoveTrainingMutation,
+  useEmployeeControllerUploadAttachmentMutation,
+  useEmployeeControllerListAttachmentsQuery,
+  useLazyEmployeeControllerListAttachmentsQuery,
+  useEmployeeControllerUploadAttachmentsBulkMutation,
+  useEmployeeControllerGetAttachmentQuery,
+  useLazyEmployeeControllerGetAttachmentQuery,
+  useEmployeeControllerRemoveAttachmentMutation,
   useEmployeeControllerReceiveLmsDataMutation,
   useOrganizationControllerCreateMutation,
   useOrganizationControllerFindAllQuery,

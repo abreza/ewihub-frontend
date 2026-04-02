@@ -22,6 +22,7 @@ import DemographicDisplay from "@/components/molecules/DemographicDisplay";
 import FollowUpStatusSelect from "@/components/molecules/FollowUpStatusSelect";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 import SelfAssessmentSection from "@/components/organisms/SelfAssessmentSection";
+import AttachmentSection from "@/components/organisms/AttachmentSection";
 
 const COURSE_FILTERS = [
   { key: "all", label: "All Courses" },
@@ -147,6 +148,7 @@ export default function EmployeeDetailPage() {
             <Tab label="Summary" />
             <Tab label="Training" />
             <Tab label="Timeline" />
+            <Tab label="Attachments" />
           </Tabs>
         </Box>
 
@@ -217,7 +219,6 @@ export default function EmployeeDetailPage() {
               </Box>
             </Box>
           )}
-
           {activeTab === 2 && (
             <Box>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3, flexWrap: "wrap", gap: 1.5 }}>
@@ -296,6 +297,9 @@ export default function EmployeeDetailPage() {
                 </Box>
               ))}
             </Box>
+          )}
+          {activeTab === 3 && (
+            <AttachmentSection employeeId={employee.id} />
           )}
         </Box>
       </Card>
