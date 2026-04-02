@@ -19,7 +19,6 @@ import {
   useEmployeeControllerGetChartAggregationQuery,
   useOrganizationControllerFindOneQuery,
 } from "@/lib/redux/api/generatedApi";
-import { toSAReportRow, toUIProgramStats, nameToSlug, type SAReportRow } from "@/data/employeeAdapter";
 import { STATUS_CONFIG, DEFAULT_STATUS_STYLE } from "@/constants";
 import { usePaginatedTable } from "@/hooks/usePaginatedTable";
 import PageHeader from "@/components/atoms/PageHeader";
@@ -98,7 +97,17 @@ export default function SelfAssessmentPage() {
   } = usePaginatedTable();
 
   const { data: rawStats } = useEmployeeControllerGetStatsQuery();
-  const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
+  const stats = useMemo(() => {
+    if (!rawStats) return null;
+    const sa = rawStats.courses.find(c => c.course === "Self Assessment");
+    const breakdown = (sa?.statusBreakdown || {}) as Record<string, number>;
+    return {
+      enrolled: sa?.enrolled || 0,
+      pass: breakdown["pass"] || 0,
+      action: breakdown["action"] || 0,
+      assessment: breakdown["assessment"] || 0,
+    };
+  }, [rawStats]);
 
   const { data: reportResponse, isLoading: isLoadingReport } =
     useEmployeeControllerGetCourseReportQuery({
@@ -111,10 +120,26 @@ export default function SelfAssessmentPage() {
       limit: pageSize,
     });
 
-  const rows: SAReportRow[] = useMemo(
-    () => (reportResponse?.data ? reportResponse.data.map(toSAReportRow) : []),
-    [reportResponse],
-  );
+  const rows = useMemo(() => {
+    if (!reportResponse?.data) return [];
+    return reportResponse.data.map(row => {
+      let uiStatus = "Not Taken";
+      if (row.status === "pass") uiStatus = "Pass";
+      else if (row.status === "action") uiStatus = "Action Needed";
+      else if (row.status === "assessment") uiStatus = "Assessment";
+      else if (row.status === "pending" || row.status === "started") uiStatus = "In Progress";
+      else if (row.status === "finished") uiStatus = "Completed";
+
+      return {
+        ...row,
+        slug: row.name.toLowerCase().replace(/\s+/g, "-"),
+        uiStatus,
+        start: row.startedDate || "-",
+        end: row.completedDate || "-",
+        resultText: row.result || "-",
+      };
+    });
+  }, [reportResponse]);
 
   const { data: discomfortData } = useEmployeeControllerGetBodyAggregationQuery({
     course: "Self Assessment",
@@ -139,19 +164,19 @@ export default function SelfAssessmentPage() {
 
   const insights = stats
     ? [
-      { label: "Total Enrolled", value: String(stats.sa.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb" },
-      { label: "Pass", value: String(stats.sa.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a" },
-      { label: "Action Needed", value: String(stats.sa.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c" },
-      { label: "Assessment", value: String(stats.sa.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626" },
+      { label: "Total Enrolled", value: String(stats.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb" },
+      { label: "Pass", value: String(stats.pass), icon: <CheckCircleRoundedIcon />, color: "#16a34a" },
+      { label: "Action Needed", value: String(stats.action), icon: <TrendingUpRoundedIcon />, color: "#ea580c" },
+      { label: "Assessment", value: String(stats.assessment), icon: <WarningAmberRoundedIcon />, color: "#dc2626" },
     ]
     : [];
 
   const resultSegments = useMemo(
     () => stats
       ? [
-        { value: stats.sa.pass, color: "#6AB187", label: "Pass" },
-        { value: stats.sa.action, color: "#DBAE58", label: "Action Needed" },
-        { value: stats.sa.assessment, color: "#AC3E31", label: "Assessment" },
+        { value: stats.pass, color: "#6AB187", label: "Pass" },
+        { value: stats.action, color: "#DBAE58", label: "Action Needed" },
+        { value: stats.assessment, color: "#AC3E31", label: "Assessment" },
       ]
       : [],
     [stats],
@@ -181,7 +206,7 @@ export default function SelfAssessmentPage() {
   const equipmentTotal = equipmentSegments.reduce((sum, s) => sum + s.value, 0);
 
   const chartTabs: ChartTab[] = useMemo(() => {
-    const tabs: ChartTab[] = [
+    return [
       {
         key: "result",
         label: "Result",
@@ -219,7 +244,6 @@ export default function SelfAssessmentPage() {
         legendValueType: "percentage",
       },
     ];
-    return tabs;
   }, [
     stats, resultSegments, passPct,
     issuesSegments, issuesTotal,
@@ -350,31 +374,31 @@ export default function SelfAssessmentPage() {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => {
-                      const config = STATUS_CONFIG[row.status] || DEFAULT_STATUS_STYLE;
+                      const config = STATUS_CONFIG[row.uiStatus] || DEFAULT_STATUS_STYLE;
                       return (
-                        <TableRow key={row.id} hover sx={{ cursor: "pointer" }}
-                          onClick={() => router.push(`/employees/${row.id}/${nameToSlug(row.name)}`)}
+                        <TableRow key={row.employeeId} hover sx={{ cursor: "pointer" }}
+                          onClick={() => router.push(`/employees/${row.employeeId}/${row.slug}`)}
                         >
                           <TableCell sx={{ color: "primary.main", fontWeight: 600 }}>
                             {row.name}
                           </TableCell>
                           <TableCell>{row.start}</TableCell>
-                          <TableCell>{row.end || "-"}</TableCell>
+                          <TableCell>{row.end}</TableCell>
                           <TableCell>
-                            <Chip label={row.status} size="small"
+                            <Chip label={row.uiStatus} size="small"
                               sx={{ borderRadius: "6px", fontWeight: 600, fontSize: "0.7rem", bgcolor: config.bg, color: config.color }}
                             />
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontSize: "0.8rem" }}>
-                              {row.result}
+                              {row.resultText}
                             </Typography>
                           </TableCell>
                           {org?.enableFollowUpStatus && (
                             <TableCell onClick={(e) => e.stopPropagation()}>
                               <FollowUpStatusSelect
-                                employeeId={row.id}
-                                currentStatus={row.followUpStatus}
+                                employeeId={row.employeeId}
+                                currentStatus={row.followUpStatus ?? null}
                                 options={org.followUpStatuses}
                               />
                             </TableCell>

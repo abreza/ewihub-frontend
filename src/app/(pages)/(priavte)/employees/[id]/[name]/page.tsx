@@ -13,7 +13,6 @@ import {
   useEmployeeControllerFindOneQuery,
   useOrganizationControllerFindOneQuery,
 } from "@/lib/redux/api/generatedApi";
-import { toUIEmployeeDetail } from "@/data/employeeAdapter";
 import StatusChip from "@/components/atoms/StatusChip";
 import SearchField from "@/components/atoms/SearchField";
 import FilterButtons from "@/components/atoms/FilterButtons";
@@ -42,10 +41,152 @@ export default function EmployeeDetailPage() {
     { skip: !employeeId },
   );
 
-  const employee = useMemo(
-    () => (rawEmployee ? toUIEmployeeDetail(rawEmployee) : null),
-    [rawEmployee],
-  );
+  const employee = useMemo(() => {
+    if (!rawEmployee) return null;
+
+    const emp = rawEmployee;
+    const reversedTrainings = [...emp.trainings].reverse();
+
+    const oeTraining = reversedTrainings.find((t) => t.course === "Office Ergonomics");
+    const saTraining = reversedTrainings.find((t) => t.course === "Self Assessment");
+
+    const mapStatus = (course: string, status: string) => {
+      if (course === "Self Assessment") {
+        if (status === "pass") return "Pass";
+        if (status === "action") return "Action Needed";
+        if (status === "assessment") return "Assessment";
+        if (status === "pending" || status === "started") return "In Progress";
+        if (status === "finished") return "Completed";
+        return "Not Taken";
+      } else {
+        if (status === "completed") return "Completed";
+        if (status === "pending" || status === "started") return "In Progress";
+        return "Not Taken";
+      }
+    };
+
+    const uiTrainings = emp.trainings.map((t) => ({
+      trainingId: t.id,
+      date: t.completedDate || t.startedDate || "-",
+      training: t.course,
+      result: mapStatus(t.course, t.status),
+      startedDate: t.startedDate || "-",
+      completedDate: t.completedDate || "-",
+    }));
+
+    const latestTrainings: typeof uiTrainings = [];
+    const seenCourses = new Set<string>();
+    for (const t of reversedTrainings) {
+      if (!seenCourses.has(t.course)) {
+        seenCourses.add(t.course);
+        latestTrainings.push({
+          trainingId: t.id,
+          date: t.completedDate || t.startedDate || "-",
+          training: t.course,
+          result: mapStatus(t.course, t.status),
+          startedDate: t.startedDate || "-",
+          completedDate: t.completedDate || "-",
+        });
+      }
+    }
+
+    const buildDemographic = (d: any) => ({
+      age: d?.age || "-",
+      height: d?.heightRaw || "-",
+      handedness: d?.handedness ? `${d.handedness.charAt(0).toUpperCase() + d.handedness.slice(1)}-handed` : "-",
+      monitors: d?.dualMonitors ? "Has dual monitors" : "Single monitor",
+      usesLaptop: d?.usesLaptop ?? false,
+      chairAdjustable: d?.chairAdjustable ?? false,
+      wearsBifocals: d?.wearsBifocals ?? false,
+    });
+
+    const buildDiscomforts = (d: any[]) => {
+      if (!d || d.length === 0) return "-";
+      return d.map((x) => `${x.area}: ${x.severity ?? "?"}`).join(", ");
+    };
+
+    const buildIssues = (i: any) => {
+      if (!i) return "No issues";
+      const parts = [];
+      if (i.recommendations?.length) parts.push(...i.recommendations);
+      if (i.actionItems?.length) parts.push(...i.actionItems);
+      if (i.suggestions?.length) parts.push(...i.suggestions);
+      if (i.other?.length) parts.push(...i.other);
+      if (parts.length === 0) return i.raw?.trim() || "No issues";
+      return parts.join("\n");
+    };
+
+    const buildBodyData = (bp: any[]) => {
+      const data: Record<string, number> = {};
+      if (!bp) return data;
+      for (const p of bp) {
+        if (p.severity > 0) data[p.bodyPart] = p.severity;
+      }
+      return data;
+    };
+
+    const isSA = (data: any) =>
+      data && ("demographic" in data || "discomforts" in data || "bodyPartsDiscomfort" in data);
+
+    let selfAssessmentDetail = null;
+    if (saTraining?.courseData && isSA(saTraining.courseData)) {
+      const cd = saTraining.courseData as any;
+      selfAssessmentDetail = {
+        trainingId: saTraining.id,
+        started: saTraining.startedDate || "-",
+        completed: saTraining.completedDate || "-",
+        demographic: buildDemographic(cd.demographic),
+        discomforts: buildDiscomforts(cd.discomforts),
+        action: cd.actions?.length ? cd.actions.join(", ") : "-",
+        equipment: cd.equipment?.length ? cd.equipment.join("\n") : "-",
+        issues: buildIssues(cd.issues),
+        result: cd.result || cd.issues?.result || "-",
+        bodyData: buildBodyData(cd.bodyPartsDiscomfort),
+      };
+    }
+
+    const dateMap = new Map<string, any[]>();
+    for (const t of emp.trainings) {
+      const dateKey = t.completedDate || t.startedDate || "Unknown";
+      if (!dateMap.has(dateKey)) dateMap.set(dateKey, []);
+
+      const entry: any = {
+        type: t.course,
+        trainingId: t.id,
+        started: t.startedDate || "-",
+        completed: t.completedDate || "-",
+      };
+
+      if (t.course === "Self Assessment" && t.courseData && isSA(t.courseData) && (t.courseData as any).demographic) {
+        const cd = t.courseData as any;
+        entry.details = {
+          demographic: buildDemographic(cd.demographic),
+          discomforts: buildDiscomforts(cd.discomforts),
+          action: cd.actions?.length ? cd.actions.join(", ") : "-",
+          equipment: cd.equipment?.length ? cd.equipment.join("\n") : "-",
+          issues: buildIssues(cd.issues),
+          result: cd.result || cd.issues?.result || "-",
+          bodyData: buildBodyData(cd.bodyPartsDiscomfort),
+        };
+      }
+      dateMap.get(dateKey)!.push(entry);
+    }
+
+    const timeline = Array.from(dateMap.entries()).map(([date, entries]) => ({ date, entries }));
+
+    return {
+      id: emp.id,
+      name: emp.name,
+      email: emp.email,
+      followUpStatus: emp.followUpStatus ?? null,
+      officeErgonomics: oeTraining ? mapStatus(oeTraining.course, oeTraining.status) : "Not Taken",
+      selfAssessment: saTraining ? mapStatus(saTraining.course, saTraining.status) : "Not Taken",
+      trainings: uiTrainings,
+      latestTrainings,
+      selfAssessmentDetail,
+      timeline,
+    };
+  }, [rawEmployee]);
 
   const { data: org } = useOrganizationControllerFindOneQuery(
     { id: rawEmployee?.organization || "" },
@@ -204,8 +345,8 @@ export default function EmployeeDetailPage() {
                     {employee.trainings.map((t, i) => (
                       <TableRow key={i} hover>
                         <TableCell sx={{ fontWeight: 500 }}>{t.training}</TableCell>
-                        <TableCell>{t.startedDate || "-"}</TableCell>
-                        <TableCell>{t.completedDate || "-"}</TableCell>
+                        <TableCell>{t.startedDate}</TableCell>
+                        <TableCell>{t.completedDate}</TableCell>
                         <TableCell><StatusChip status={t.result} /></TableCell>
                       </TableRow>
                     ))}
@@ -271,7 +412,7 @@ export default function EmployeeDetailPage() {
                                 <Box sx={{ p: 2 }}>
                                   <DetailRow label="Started" value={entry.started} icon={<AccessTimeIcon />} />
                                   <DetailRow label="Completed" value={entry.completed} icon={<AccessTimeIcon />} />
-                                  <DetailRow label="Demographic" value={<DemographicDisplay d={entry.details.demographic} />} />
+                                  <DetailRow label="Demographic" value={<DemographicDisplay {...entry.details.demographic} />} />
                                   <DetailRow label="Discomforts" value={entry.details.discomforts} />
                                   <DetailRow label="Action" value={entry.details.action} />
                                   <DetailRow label="Equipment" value={entry.details.equipment} />

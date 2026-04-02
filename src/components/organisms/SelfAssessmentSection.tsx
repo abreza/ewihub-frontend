@@ -2,13 +2,24 @@
 
 import { Box, Card, Chip, Typography } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { UIEmployeeDetail } from "@/data/employeeAdapter";
 import DetailRow from "@/components/molecules/DetailRow";
-import DemographicDisplay from "@/components/molecules/DemographicDisplay";
+import DemographicDisplay, { DemographicData } from "@/components/molecules/DemographicDisplay";
 import BodyDiagram from "@/components/organisms/bodyDiagram/BodyDiagram";
 
+export interface SelfAssessmentDetailData {
+  started: string;
+  completed: string;
+  demographic: DemographicData;
+  discomforts: string;
+  action: string;
+  equipment: string;
+  issues: string;
+  result: string;
+  bodyData: Record<string, number>;
+}
+
 interface SelfAssessmentSectionProps {
-  detail: NonNullable<UIEmployeeDetail["selfAssessmentDetail"]>;
+  detail: SelfAssessmentDetailData;
   resultLabel: string;
 }
 
@@ -25,7 +36,7 @@ const SelfAssessmentSection = ({
         <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
           <DetailRow label="Started" value={detail.started} icon={<AccessTimeIcon />} />
           <DetailRow label="Completed" value={detail.completed} icon={<AccessTimeIcon />} />
-          <DetailRow label="Demographic" value={<DemographicDisplay d={detail.demographic} />} />
+          <DetailRow label="Demographic" value={<DemographicDisplay {...detail.demographic} />} />
           <DetailRow label="Discomforts" value={detail.discomforts} />
           <DetailRow label="Action" value={detail.action} />
           <DetailRow label="Equipment" value={detail.equipment} />

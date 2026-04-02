@@ -14,9 +14,6 @@ import {
   useEmployeeControllerGetCourseReportQuery,
   useEmployeeControllerGetStatsQuery,
 } from "@/lib/redux/api/generatedApi";
-import {
-  toOEReportRow, toUIProgramStats, nameToSlug, type OEReportRow,
-} from "@/data/employeeAdapter";
 import { STATUS_CONFIG, DEFAULT_STATUS_STYLE } from "@/constants";
 import { usePaginatedTable } from "@/hooks/usePaginatedTable";
 import PageHeader from "@/components/atoms/PageHeader";
@@ -44,7 +41,16 @@ export default function OfficeErgonomicsPage() {
   } = usePaginatedTable();
 
   const { data: rawStats } = useEmployeeControllerGetStatsQuery();
-  const stats = useMemo(() => (rawStats ? toUIProgramStats(rawStats) : null), [rawStats]);
+
+  const stats = useMemo(() => {
+    if (!rawStats) return null;
+    const oe = rawStats.courses.find(c => c.course === "Office Ergonomics");
+    return {
+      enrolled: oe?.enrolled || 0,
+      completed: oe?.completed || 0,
+      inProgress: oe?.inProgress || 0,
+    };
+  }, [rawStats]);
 
   const { data: reportResponse, isLoading: isLoadingReport } =
     useEmployeeControllerGetCourseReportQuery({
@@ -57,10 +63,22 @@ export default function OfficeErgonomicsPage() {
       limit: pageSize,
     });
 
-  const rows: OEReportRow[] = useMemo(
-    () => (reportResponse?.data ? reportResponse.data.map(toOEReportRow) : []),
-    [reportResponse],
-  );
+  const rows = useMemo(() => {
+    if (!reportResponse?.data) return [];
+    return reportResponse.data.map((row) => {
+      let uiStatus = "Not Taken";
+      if (row.status === "completed") uiStatus = "Completed";
+      else if (row.status === "pending" || row.status === "started") uiStatus = "In Progress";
+
+      return {
+        ...row,
+        slug: row.name.toLowerCase().replace(/\s+/g, "-"),
+        uiStatus,
+        start: row.startedDate || "-",
+        end: row.completedDate || "-",
+      };
+    });
+  }, [reportResponse]);
 
   const meta = reportResponse?.meta;
   const totalPages = meta?.totalPages ?? 1;
@@ -69,23 +87,23 @@ export default function OfficeErgonomicsPage() {
 
   const insights = stats
     ? [
-      { label: "Total Enrolled", value: String(stats.oe.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb" },
-      { label: "In Progress", value: String(stats.oe.inProgress), icon: <TrendingUpRoundedIcon />, color: "#ea580c" },
-      { label: "Completed", value: String(stats.oe.completed), icon: <CheckCircleRoundedIcon />, color: "#16a34a" },
+      { label: "Total Enrolled", value: String(stats.enrolled), icon: <PeopleRoundedIcon />, color: "#2563eb" },
+      { label: "In Progress", value: String(stats.inProgress), icon: <TrendingUpRoundedIcon />, color: "#ea580c" },
+      { label: "Completed", value: String(stats.completed), icon: <CheckCircleRoundedIcon />, color: "#16a34a" },
       { label: "Avg. Days", value: "1", icon: <TimerRoundedIcon />, color: "#7c3aed" },
     ]
     : [];
 
   const donutSegments = stats
     ? [
-      { value: stats.oe.completed, color: "#16a34a", label: "Completed" },
-      { value: stats.oe.inProgress, color: "#f97316", label: "In Progress" },
+      { value: stats.completed, color: "#16a34a", label: "Completed" },
+      { value: stats.inProgress, color: "#f97316", label: "In Progress" },
     ]
     : [];
 
   const completionPct = stats
-    ? stats.oe.enrolled > 0
-      ? Math.round((stats.oe.completed / (stats.oe.completed + stats.oe.inProgress)) * 100)
+    ? stats.enrolled > 0
+      ? Math.round((stats.completed / (stats.completed + stats.inProgress)) * 100)
       : 0
     : 0;
 
@@ -204,14 +222,14 @@ export default function OfficeErgonomicsPage() {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => {
-                      const config = STATUS_CONFIG[row.status] || DEFAULT_STATUS_STYLE;
+                      const config = STATUS_CONFIG[row.uiStatus] || DEFAULT_STATUS_STYLE;
                       return (
                         <TableRow
-                          key={row.id}
+                          key={row.employeeId}
                           hover
                           sx={{ cursor: "pointer" }}
                           onClick={() =>
-                            router.push(`/employees/${row.id}/${nameToSlug(row.name)}`)
+                            router.push(`/employees/${row.employeeId}/${row.slug}`)
                           }
                         >
                           <TableCell
@@ -227,7 +245,7 @@ export default function OfficeErgonomicsPage() {
                           <TableCell>{row.end}</TableCell>
                           <TableCell>
                             <Chip
-                              label={row.status}
+                              label={row.uiStatus}
                               size="small"
                               sx={{
                                 borderRadius: "6px",

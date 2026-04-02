@@ -8,7 +8,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { useEmployeeControllerFindAllQuery } from "@/lib/redux/api/generatedApi";
-import { toUIEmployees } from "@/data/employeeAdapter";
 import { AVATAR_COLORS } from "@/constants";
 import { usePaginatedTable } from "@/hooks/usePaginatedTable";
 import StatusChip from "@/components/atoms/StatusChip";
@@ -33,10 +32,31 @@ export default function EmployeesPage() {
     limit: pageSize,
   });
 
-  const employees = useMemo(
-    () => (response?.data ? toUIEmployees(response.data) : []),
-    [response],
-  );
+  const employees = useMemo(() => {
+    if (!response?.data) return [];
+    return response.data.map((emp) => {
+      const oe = emp.trainingStatuses.find((t) => t.course === "Office Ergonomics");
+      const sa = emp.trainingStatuses.find((t) => t.course === "Self Assessment");
+
+      let oeStatus = "Not Taken";
+      if (oe?.status === "completed") oeStatus = "Completed";
+      else if (oe?.status === "pending" || oe?.status === "started") oeStatus = "In Progress";
+
+      let saStatus = "Not Taken";
+      if (sa?.status === "pass") saStatus = "Pass";
+      else if (sa?.status === "action") saStatus = "Action Needed";
+      else if (sa?.status === "assessment") saStatus = "Assessment";
+      else if (sa?.status === "pending" || sa?.status === "started") saStatus = "In Progress";
+      else if (sa?.status === "finished") saStatus = "Completed";
+
+      return {
+        ...emp,
+        slug: emp.name.toLowerCase().replace(/\s+/g, "-"),
+        oeStatus,
+        saStatus,
+      };
+    });
+  }, [response]);
 
   const meta = response?.meta;
   const totalPages = meta?.totalPages ?? 1;
@@ -157,10 +177,10 @@ export default function EmployeesPage() {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <StatusChip status={employee.officeErgonomics} />
+                      <StatusChip status={employee.oeStatus} />
                     </TableCell>
                     <TableCell>
-                      <StatusChip status={employee.selfAssessment} />
+                      <StatusChip status={employee.saStatus} />
                     </TableCell>
                   </TableRow>
                 ))}

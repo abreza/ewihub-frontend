@@ -14,7 +14,6 @@ import {
   useEmployeeControllerGetStatsQuery,
   useOrganizationControllerFindOneQuery,
 } from "@/lib/redux/api/generatedApi";
-import { toUIProgramStats } from "@/data/employeeAdapter";
 import { useMe } from "@/lib/hooks/useMe";
 import PageHeader from "@/components/atoms/PageHeader";
 import InsightCard from "@/components/molecules/InsightCard";
@@ -31,10 +30,28 @@ export default function HomePage() {
 
   const isSuperAdmin = user?.role === "superAdmin";
 
-  const stats = useMemo(
-    () => (rawStats ? toUIProgramStats(rawStats) : null),
-    [rawStats],
-  );
+  const stats = useMemo(() => {
+    if (!rawStats) return null;
+
+    const oeCourse = rawStats.courses.find((c) => c.course === "Office Ergonomics");
+    const saCourse = rawStats.courses.find((c) => c.course === "Self Assessment");
+
+    return {
+      totalEmployees: rawStats.totalEmployees,
+      completionRate: rawStats.completionRate,
+      assessmentsDue: saCourse?.inProgress || 0,
+      oe: {
+        enrolled: oeCourse?.enrolled || 0,
+        completed: oeCourse?.completed || 0,
+        inProgress: oeCourse?.inProgress || 0,
+      },
+      sa: {
+        enrolled: saCourse?.enrolled || 0,
+        completed: saCourse?.completed || 0,
+        inProgress: saCourse?.inProgress || 0,
+      },
+    };
+  }, [rawStats]);
 
   if (isLoading) {
     return (
