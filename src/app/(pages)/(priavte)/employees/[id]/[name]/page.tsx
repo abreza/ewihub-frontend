@@ -183,6 +183,7 @@ export default function EmployeeDetailPage() {
       selfAssessment: saTraining ? mapStatus(saTraining.course, saTraining.status) : "Not Taken",
       trainings: uiTrainings,
       latestTrainings,
+      latestTrainingIds: latestTrainings.map((training) => training.trainingId),
       selfAssessmentDetail,
       timeline,
     };
@@ -376,67 +377,77 @@ export default function EmployeeDetailPage() {
                 />
               </Box>
 
-              {employee.timeline.map((day, di) => (
-                <Box key={di}>
-                  <Chip label={day.date} size="small"
-                    sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", borderRadius: "6px", fontWeight: 600, mb: 2, fontSize: "0.75rem" }}
-                  />
+              {employee.timeline.map((day, di) => {
+                const filteredEntries = day.entries.filter((entry) => {
+                  const matchesCourse =
+                    timelineCourseFilter === "all"
+                    || (timelineCourseFilter === "self-assessment" && entry.type === "Self Assessment")
+                    || (timelineCourseFilter === "office-ergonomics" && entry.type === "Office Ergonomics");
 
-                  {day.entries
-                    .filter((entry) => {
-                      if (timelineCourseFilter === "all") return true;
-                      if (timelineCourseFilter === "self-assessment") return entry.type === "Self Assessment";
-                      if (timelineCourseFilter === "office-ergonomics") return entry.type === "Office Ergonomics";
-                      return true;
-                    })
-                    .map((entry, ei) => (
-                      <Box key={ei} sx={{ display: "flex", gap: { xs: 1.5, sm: 2 }, mb: 3, ml: { xs: 0, sm: 1 } }}>
-                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
-                          <Avatar sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", width: 32, height: 32 }}>
-                            <SchoolRoundedIcon sx={{ fontSize: 16 }} />
-                          </Avatar>
-                          {ei < day.entries.length - 1 && (
-                            <Box sx={{ width: 2, flex: 1, bgcolor: "divider", mt: 1 }} />
-                          )}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
-                            <Typography variant="body1" sx={{ color: "primary.main", fontWeight: 600 }}>
-                              {entry.type}
-                            </Typography>
+                  if (!matchesCourse) return false;
+                  if (timelineTryFilter === "all") return true;
+
+                  return employee.latestTrainingIds.includes(entry.trainingId);
+                });
+
+                if (filteredEntries.length === 0) return null;
+
+                return (
+                  <Box key={di}>
+                    <Chip label={day.date} size="small"
+                      sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", borderRadius: "6px", fontWeight: 600, mb: 2, fontSize: "0.75rem" }}
+                    />
+
+                    {filteredEntries
+                      .map((entry, ei) => (
+                        <Box key={ei} sx={{ display: "flex", gap: { xs: 1.5, sm: 2 }, mb: 3, ml: { xs: 0, sm: 1 } }}>
+                          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+                            <Avatar sx={{ bgcolor: alpha("#2563eb", 0.1), color: "#2563eb", width: 32, height: 32 }}>
+                              <SchoolRoundedIcon sx={{ fontSize: 16 }} />
+                            </Avatar>
+                            {ei < filteredEntries.length - 1 && (
+                              <Box sx={{ width: 2, flex: 1, bgcolor: "divider", mt: 1 }} />
+                            )}
                           </Box>
+                          <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
+                              <Typography variant="body1" sx={{ color: "primary.main", fontWeight: 600 }}>
+                                {entry.type}
+                              </Typography>
+                            </Box>
 
-                          {entry.details ? (
-                            <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap" }}>
-                              <Card sx={{ flex: 1, minWidth: { xs: "100%", sm: 280 } }}>
+                            {entry.details ? (
+                              <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, flexWrap: "wrap" }}>
+                                <Card sx={{ flex: 1, minWidth: { xs: "100%", sm: 280 } }}>
+                                  <Box sx={{ p: 2 }}>
+                                    <DetailRow label="Started" value={entry.started} icon={<AccessTimeIcon />} />
+                                    <DetailRow label="Completed" value={entry.completed} icon={<AccessTimeIcon />} />
+                                    <DetailRow label="Demographic" value={<DemographicDisplay {...entry.details.demographic} />} />
+                                    <DetailRow label="Discomforts" value={entry.details.discomforts} />
+                                    <DetailRow label="Action" value={entry.details.action} />
+                                    <DetailRow label="Equipment" value={entry.details.equipment} />
+                                    <DetailRow label="Issues" value={entry.details.issues} />
+                                    <DetailRow label="Result" value={entry.details.result} />
+                                  </Box>
+                                </Card>
+                                <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                                  <BodyDiagram data={entry.details.bodyData} resultLabel={resultLabel} />
+                                </Box>
+                              </Box>
+                            ) : (
+                              <Card sx={{ maxWidth: 380 }}>
                                 <Box sx={{ p: 2 }}>
                                   <DetailRow label="Started" value={entry.started} icon={<AccessTimeIcon />} />
                                   <DetailRow label="Completed" value={entry.completed} icon={<AccessTimeIcon />} />
-                                  <DetailRow label="Demographic" value={<DemographicDisplay {...entry.details.demographic} />} />
-                                  <DetailRow label="Discomforts" value={entry.details.discomforts} />
-                                  <DetailRow label="Action" value={entry.details.action} />
-                                  <DetailRow label="Equipment" value={entry.details.equipment} />
-                                  <DetailRow label="Issues" value={entry.details.issues} />
-                                  <DetailRow label="Result" value={entry.details.result} />
                                 </Box>
                               </Card>
-                              <Box sx={{ display: { xs: "none", sm: "block" } }}>
-                                <BodyDiagram data={entry.details.bodyData} resultLabel={resultLabel} />
-                              </Box>
-                            </Box>
-                          ) : (
-                            <Card sx={{ maxWidth: 380 }}>
-                              <Box sx={{ p: 2 }}>
-                                <DetailRow label="Started" value={entry.started} icon={<AccessTimeIcon />} />
-                                <DetailRow label="Completed" value={entry.completed} icon={<AccessTimeIcon />} />
-                              </Box>
-                            </Card>
-                          )}
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                    ))}
-                </Box>
-              ))}
+                      ))}
+                  </Box>
+                );
+              })}
             </Box>
           )}
           {activeTab === 3 && (
