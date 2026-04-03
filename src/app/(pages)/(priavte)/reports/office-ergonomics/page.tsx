@@ -134,6 +134,7 @@ export default function OfficeErgonomicsPage() {
                     segments={donutSegments}
                     centerValue={`${completionPct}%`}
                     centerLabel="Completed"
+                    legendValueType="percentage"
                   />
                 ) : (
                   <CircularProgress size={28} />
