@@ -6,6 +6,37 @@ import type {
   EmployeeControllerUploadAttachmentsBulkApiResponse,
 } from "./generatedApi";
 
+export type NoteRo = {
+  id: string;
+  content: string;
+  createdBy: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EmployeeControllerListNotesApiResponse = NoteRo[];
+export type EmployeeControllerListNotesApiArg = { id: string };
+
+export type EmployeeControllerAddNoteApiResponse = NoteRo;
+export type EmployeeControllerAddNoteApiArg = {
+  id: string;
+  createNoteDto: { content: string };
+};
+
+export type EmployeeControllerUpdateNoteApiResponse = NoteRo;
+export type EmployeeControllerUpdateNoteApiArg = {
+  id: string;
+  noteId: string;
+  updateNoteDto: { content: string };
+};
+
+export type EmployeeControllerRemoveNoteApiResponse = void;
+export type EmployeeControllerRemoveNoteApiArg = {
+  id: string;
+  noteId: string;
+};
+
 export const api = generatedApi
   .enhanceEndpoints({
     endpoints: {},
@@ -48,6 +79,51 @@ export const api = generatedApi
         },
         invalidatesTags: ["Employees"],
       }),
+
+      employeeControllerListNotes: build.query<
+        EmployeeControllerListNotesApiResponse,
+        EmployeeControllerListNotesApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/notes`,
+        }),
+        providesTags: ["Employees"],
+      }),
+
+      employeeControllerAddNote: build.mutation<
+        EmployeeControllerAddNoteApiResponse,
+        EmployeeControllerAddNoteApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/notes`,
+          method: "POST",
+          body: queryArg.createNoteDto,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+
+      employeeControllerUpdateNote: build.mutation<
+        EmployeeControllerUpdateNoteApiResponse,
+        EmployeeControllerUpdateNoteApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/notes/${queryArg.noteId}`,
+          method: "PATCH",
+          body: queryArg.updateNoteDto,
+        }),
+        invalidatesTags: ["Employees"],
+      }),
+
+      employeeControllerRemoveNote: build.mutation<
+        EmployeeControllerRemoveNoteApiResponse,
+        EmployeeControllerRemoveNoteApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/api/employees/${queryArg.id}/notes/${queryArg.noteId}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Employees"],
+      }),
     }),
     overrideExisting: true,
   });
@@ -55,4 +131,8 @@ export const api = generatedApi
 export const {
   useEmployeeControllerUploadAttachmentMutation,
   useEmployeeControllerUploadAttachmentsBulkMutation,
+  useEmployeeControllerListNotesQuery,
+  useEmployeeControllerAddNoteMutation,
+  useEmployeeControllerUpdateNoteMutation,
+  useEmployeeControllerRemoveNoteMutation,
 } = api;
